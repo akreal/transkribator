@@ -1,0 +1,21 @@
+[% USE date(format = '%Y.%m.%d %T', locale = 'en_US') %]
+<h2>[% title | html %]</h2>
+<hr/>
+<dl>
+[% IF transcriptions.size %]
+   [% FOREACH transcription = transcriptions %]
+	<dt>
+	<h4>
+	<a href="/transcriptions/[% transcription.id | uri %]">
+		[% transcription.title or transcription.filename | html %]
+		<small>[% date.format(transcription.updated) | html %]</small>	
+	</a>
+	</h4>
+	</dt>
+	<dd><i>[% transcription.description or 'no description' | html %]</i></dd>
+	<br/>
+   [% END %]
+</dl>
+[% ELSE %]
+No transcriptions <a href="/transcriptions/new"><b>yet</b></a>.
+[% END %]

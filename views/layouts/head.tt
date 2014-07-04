@@ -1,0 +1,21 @@
+<head>
+
+<meta http-equiv="Content-type" content="text/html; charset=[% settings.charset %]" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Phonetic speech transcriber">
+<meta name="author" content="Transkribator">
+
+<title>[% title | html %] - Transkribator</title>
+
+<link rel="stylesheet" href="[% request.uri_base %]/bootstrap/css/bootstrap.min.css" >
+<link rel="stylesheet" href="[% request.uri_base %]/fontawesome/css/font-awesome.min.css" >
+<link rel="stylesheet" href="[% request.uri_base %]/css/style.css" >
+<link rel="stylesheet" href="[% request.uri_base %]/css/jquery.fileupload.css">
+
+<script src="[% request.uri_base %]/javascripts/jquery-2.1.1.min.js"></script>
+<script src="[% request.uri_base %]/bootstrap/js/bootstrap.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/vendor/jquery.ui.widget.js"></script>
+<script src="[% request.uri_base %]/javascripts/jquery.iframe-transport.js"></script>
+<script src="[% request.uri_base %]/javascripts/jquery.fileupload.js"></script>
+</head>
+

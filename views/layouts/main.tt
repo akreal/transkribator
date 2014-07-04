@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+[% PROCESS layouts/head.tt %]
+<body>
+
+<div class="container">
+
+<nav class="navbar navbar-default" role="navigation">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <a class="navbar-brand" href="/">Transkribator</a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li[% IF request.path == '/contact' %] class="active"[% END %]><a href="/contact">Contact</a></li>
+      </ul>
+
+      <ul class="nav navbar-nav navbar-right">
+      [% IF session.username %]
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">[% session.username | html %] <b class="caret"></b></a>
+          <ul class="dropdown-menu">
+            <li><a href="/settings">Settings</a></li>
+            <li><a href="/profile">Profile</a></li>
+            <li><a href="/password">Password change</a></li>
+            <li><a href="/logout">Log out</a></li>
+          </ul>
+        </li>
+	  [% ELSE %]
+        <li><a href="/login">Log in</a></li>
+        <li><a href="/signup">Sign up</a></li>
+      [% END %]
+      </ul>
+
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+
+<div class="row">
+	<div class="col-sm-3 col-md-2 sidebar">
+	  <ul class="nav nav-sidebar">
+		<li[% IF zone == 'my' %] class="active"[% END %]><a href="/transcriptions/list/my">My&nbsp;transcriptions</a></li>
+		<li[% IF zone == 'shared' %] class="active"[% END %]><a href="/transcriptions/list/shared">Shared&nbsp;transcriptions</a></li>
+		<li><a href="/transcriptions/new">New&nbsp;transcription</a></li>
+	  </ul>
+	</div>
+
+	<div class="col-sm-9 col-md-10 main">
+[% content %]
+	</div>
+</div>
+
+</div> <!-- /container -->
+</body>
+</html>

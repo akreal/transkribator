@@ -1,0 +1,106 @@
+body {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.navbar {
+	border-width: 0px;
+}
+
+a {
+  color: #333333;
+}
+
+a:hover {
+  color: #000000;
+}
+
+.navbar {
+  margin-bottom: 10px;
+}
+
+.main {
+  margin-top: 10px;
+}
+
+.btn-primary {
+  background-color: #ddd;
+  color: #333333;
+  border-width: 0px;
+}
+
+.btn-primary:hover {
+  background-color: #bbb;
+  color: #333333;
+}
+
+.form-horizontal .control-label {
+	padding-top: 0px;
+}
+
+#waveform {
+    position: relative;
+}
+
+#wave-spectrogram {
+    position: relative;
+}
+
+#progress-bar {
+    position: absolute;
+    z-index: 10;
+    left: 0;
+    top: 50%;
+    margin-top: -10px;
+    left: 5%;
+    width: 80%;
+}
+
+#drop {
+    border: 3px dashed #ddd;
+    padding: 30px;
+}
+
+#drop.wavesurfer-dragover {
+    border-color: #333;
+}
+
+.phone-cell {
+    overflow: hidden;
+    font-family: "Charis SIL", "Doulos SIL", Gentium, "Arial Unicode MS","Lucida Sans Unicode", Arial, Serif;
+    background: linear-gradient(to right, #e7e7e7, #ffffff); 
+}
+
+.phone-cell.highlight {
+    background: violet; 
+}
+
+
+.drop-element {
+	display: none;
+}
+
+.drop-element.drop-open {
+	display: block;
+}
+
+.best.drop-enabled {
+/*	color: #aaaaaa; */
+}
+
+.best.drop-target {
+	cursor: pointer;
+}
+
+span.candidate {
+	padding-left: 5px;
+	padding-right: 5px;
+    font-family: "Charis SIL", "Doulos SIL", Gentium, "Arial Unicode MS","Lucida Sans Unicode", Arial, Serif;
+	color: #000000;
+	background: #dddddd;
+	cursor: pointer;
+}
+
+span.candidate:hover, span.candidate.highlight {
+	background: #f6f6f6;
+}

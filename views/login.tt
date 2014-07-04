@@ -1,0 +1,15 @@
+      <form class="form" role="form" action="/login" method="POST">
+        <h2 class="form-heading">Please log in</h2>
+      [% IF warn %]
+		<div class="alert alert-warning">[% warn | html %]</div>
+      [% END %]
+        <input type="text" class="form-control" placeholder="Username or Email" name="username" required autofocus>
+        <input type="password" class="form-control" placeholder="Password" name="password" required>
+<!--
+        <label class="checkbox">
+          <input type="checkbox" value="remember-me" name="remember"> Remember me
+        </label>
+-->
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Log in</button>
+      </form>
+

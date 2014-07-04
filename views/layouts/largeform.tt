@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+[% PROCESS layouts/head.tt %]
+<body>
+
+<!-- Custom styles for this template -->
+<link href="[% request.uri_base %]/css/largeform.css" rel="stylesheet">
+
+<div class="container">
+
+[% content %]
+
+</div> <!-- /container -->
+
+<script src="[% request.uri_base %]/javascripts/jquery-2.1.1.min.js"></script>
+<script src="[% request.uri_base %]/bootstrap/js/bootstrap.min.js"></script>
+
+</body>
+</html>
