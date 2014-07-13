@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
         waveColor     : 'violet',
         progressColor : 'purple',
         loaderColor   : 'purple',
-        cursorColor   : 'navy',
+        cursorColor   : '#b5b5b5',
         markerWidth   : 1,
         minPxPerSec   : 400,
         scrollParent  : true,
