@@ -384,7 +384,9 @@ function changeBest(id, newBest) {
 	drops[id].close();
 	var phonemIndex = diIndex[id];
 	transkription.splice(phonemIndex, 1, [newBest, transkription[phonemIndex][1]]);
-	pActivate(drops.length - 1);
+	if (id == currentP) {
+		pActivate(drops.length - 1);
+	}
 }
 
 function generateCandidatesList(id, phonemCode) {
