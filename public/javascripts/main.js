@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 var drops = new Array();
 
-var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex;
+var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, transkriptionChanged;
 
 function pActivate (pId) {
 	if (currentP != pId) {
@@ -393,14 +393,16 @@ function generateCandidatesList(id, phonemCode) {
 	var candidatesList = document.createElement('div');
 	candidatesList.className = 'candidates-list';
 
-	for (var j = 0; j < alternatives[phonemCode].length; j++) {
-		var candidate = document.createElement('span');
+	if (editable) {
+		for (var j = 0; j < alternatives[phonemCode].length; j++) {
+			var candidate = document.createElement('span');
 
-		candidate.className = 'candidate';
-		candidate.innerHTML = phonemHTML[alternatives[phonemCode][j]];
-		eval('candidate.onclick = function () { changeBest(' + id + ', ' + alternatives[phonemCode][j] + '); };');
+			candidate.className = 'candidate';
+			candidate.innerHTML = phonemHTML[alternatives[phonemCode][j]];
+			eval('candidate.onclick = function () { changeBest(' + id + ', ' + alternatives[phonemCode][j] + '); };');
 
-		candidatesList.appendChild(candidate);
+			candidatesList.appendChild(candidate);
+		}
 	}
 
 	return candidatesList;
@@ -481,6 +483,8 @@ wavesurfer.on('ready', function () {
 
 					phonemStart += n[i][1];
 				}
+
+				transkriptionChanged = true;
 			});
 
 			var phones = can.view(
@@ -496,6 +500,12 @@ wavesurfer.on('ready', function () {
 			})
 
 			wavesurfer.seekAndCenter(0);
+
+			document.forms[0].onsubmit = function() { 
+													if (transkriptionChanged) {
+														document.forms[0].transkription.value = JSON.stringify(transkription.attr());
+													} 
+										};
 		}
 		else {
 			wavesurfer.fireEvent('error', 'Server response: ' + xhr.statusText);

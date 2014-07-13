@@ -231,7 +231,7 @@ post '/transcriptions/update' => sub {
 		return template 'needlogin' => { title => 'Transcription' };
 	}
 
-	my ($utt, $title, $description) = map { param($_) eq '' ? undef : param($_) } ('utt', 'title', 'description');
+	my ($utt, $title, $description, $transkription) = map { param($_) eq '' ? undef : param($_) } ('utt', 'title', 'description', 'transkription');
 	
 	my $owner = database->quick_lookup('utterancies', { 'id' => $utt }, 'owner');
 
@@ -240,6 +240,10 @@ post '/transcriptions/update' => sub {
 	}
 
 	database->quick_update('utterancies', { 'id' => $utt }, { 'title' => $title, 'description' => $description, 'updated' => 'now()', shared => param('shared') || 'f' });
+
+	if ($transkription) {
+		database->quick_insert('transcriptions', { 'utterance' => $utt, 'author' => $owner, 'transcription' => from_json($transkription) });
+	}
 	
 	my $transcription = database->quick_select('utterancies', { 'id' => $utt }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated']);
 
@@ -264,7 +268,8 @@ get '/transcriptions/:utt' => sub {
 		return send_file(\$audio, 'content_type' => 'audio/x-wav', 'filename' => "$utt.wav");
 	}
 	elsif ($type eq 'json') {
-		return database->quick_lookup('transcriptions', { 'utterance' => $utt }, 'transcription', 'order_by' => { desc => 'created' });
+		my $transkription = database->quick_select('transcriptions', { 'utterance' => $utt }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
+		return $transkription->{'transcription'};
 	}
 	elsif ($type eq 'file') {
 		my $mm = File::MMagic->new;

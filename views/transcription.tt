@@ -2,6 +2,9 @@
 <script src="[% request.uri_base %]/javascripts/wavesurfer.spectrogram.js"></script>
 <script src="[% request.uri_base %]/javascripts/drop.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/can.min.js"></script>
+<script>
+var editable = [% IF editable %]true[% ELSE %]false[% END %];
+</script>
 <script src="[% request.uri_base %]/javascripts/main.js"></script>
 
 
@@ -95,5 +98,6 @@
   </div>
 	[% END %]
   <input id="utt" type="hidden" name="utt" value="[% transcription.id | html %]">
+  <input id="transkription" type="hidden" name="transkription" value="">
 </form>
 
