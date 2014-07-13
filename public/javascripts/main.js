@@ -1,7 +1,5 @@
 'use strict';
 
-//var utt = '47DC2978-6D83-11E3-8974-8FA8CE2EE5BA';
-
 // Create an instance
 var wavesurfer = Object.create(WaveSurfer);
 
@@ -43,17 +41,16 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 var drops = new Array();
-var cells = new Array();
 
-var pIndex, currentP, currentC, newCurrentC, transkript, sIndex, duration;
+var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex;
 
 function pActivate (pId) {
 	if (currentP != pId) {
 		if (currentP != undefined) {
 			pDeactivate(currentP);
 		}
-		if (cells[pId] != undefined) {
-			cells[pId].classList.add('highlight');
+		if (drops[pId] != undefined) {
+			drops[pId].target.parentNode.parentNode.classList.add('highlight');
 			drops[pId].open();
 		}
 
@@ -62,7 +59,7 @@ function pActivate (pId) {
 }
 
 function pDeactivate (pId) {
-	cells[pId].classList.remove('highlight');
+	drops[pId].target.parentNode.parentNode.classList.remove('highlight');
 
 	drops[pId].close();
 
@@ -85,7 +82,7 @@ function pDeactivate (pId) {
 			if (wavesurfer.backend.isPaused()) {
 				if (currentC == undefined || drops[currentP] == undefined) {
 					if (currentP != 0) {
-						wavesurfer.seekAndCenter( (sIndex[(currentP || sIndex.length) - 1] * 1.002) / duration );
+						wavesurfer.seekAndCenter( (sIndex[dIndex[(diIndex[currentP] || transkription.length) - 1]] * 1.002) / duration );
 					}
 				}
 				else {
@@ -104,8 +101,8 @@ function pDeactivate (pId) {
 
         'forth': function () {
 			if (currentC == undefined || drops[currentP] == undefined) {
-				if (currentP != sIndex.length - 1) {
-					wavesurfer.seekAndCenter( (sIndex[(currentP + 1) || 1] * 1.002) / duration );
+				if (diIndex[currentP] != transkription.length - 1) {
+					wavesurfer.seekAndCenter( (sIndex[dIndex[(diIndex[currentP] + 1) || 1]] * 1.002) / duration );
 				}
 			}
 			else {
@@ -381,12 +378,13 @@ for (var i = 0; i < phonemHTML.length; i++) {
 	} 
 }
 
+var transkription;
+
 function changeBest(id, newBest) {
-	drops[id].target.innerHTML = phonemHTML[newBest];
 	drops[id].close();
-	drops[id].content.removeChild(drops[id].content.children[0]);
-	drops[id].content.appendChild(generateCandidatesList(id, newBest));
-	drops[id].position();
+	var phonemIndex = diIndex[id];
+	transkription.splice(phonemIndex, 1, [newBest, transkription[phonemIndex][1]]);
+	pActivate(drops.length - 1);
 }
 
 function generateCandidatesList(id, phonemCode) {
@@ -406,9 +404,30 @@ function generateCandidatesList(id, phonemCode) {
 	return candidatesList;
 }
 
+can.view.tag('phone', function(el, tagData){
+	var i = drops.length;
+	var phonemCode = tagData.scope.attr('0');
+
+	var best = document.createElement('div');
+	best.className = 'best';
+	best.innerHTML = phonemHTML[phonemCode];
+
+	drops.push(new Drop({
+				target: best,
+				content: generateCandidatesList(i, phonemCode),
+				position: "bottom center" 
+				})
+			);
+
+	$(el).html(best);
+});
+
+
 wavesurfer.on('ready', function () {
 	duration = wavesurfer.getDuration() * 100;
 	pIndex = new Array(Math.ceil(duration));
+	diIndex = new Array();
+	dIndex = new Array();
 
 	// Init Spectrogram plugin
 	//var spectrogram = Object.create(WaveSurfer.Spectrogram);
@@ -428,55 +447,47 @@ wavesurfer.on('ready', function () {
 
 	xhr.addEventListener('load', function (e) {
 		if (200 == xhr.status) {
-			transkript = JSON.parse(xhr.responseText);
-
-			sIndex = new Array(transkript.length);
-
-			var tbl	= document.createElement('table');
-			var tblBody = document.createElement('tbody');
-
-			var row = document.createElement('tr');
+			transkription = new can.List(JSON.parse(xhr.responseText));
 
 			var phonemStart = 0;
+			sIndex = new Array(transkription.length);
 
-			for (var i = 0; i < transkript.length; i++) {
-				var phonemCode = transkript[i][0];
-
-				var best = document.createElement('div');
-				best.className = 'best';
-				best.innerHTML = phonemHTML[phonemCode];
-		        eval('best.onclick = function () { drops[' + i + '].close(); };');
-
-				cells[i] = document.createElement('td');
-				cells[i].appendChild(best);
-				cells[i].style.width =
-					cells[i].style.minWidth = 
-					cells[i].style.maxWidth = (wavesurfer.params.minPxPerSec / 100 * transkript[i][1]) + 'px';
-				cells[i].className = 'phone-cell';
-				row.appendChild(cells[i]);
-
+			for (var i = 0; i < transkription.length; i++) {
+				diIndex[i] = i;
+				dIndex[i] = i;
 				sIndex[i] = phonemStart;
 
-				for (var j = 0; j < transkript[i][1]; j++) {
+				for (var j = 0; j < transkription[i][1]; j++) {
 					pIndex[phonemStart + j] = i;
-				} 
+				}
 
-				phonemStart += transkript[i][1];
-
-				drops[i] = new Drop({
-					target: best,
-					content: generateCandidatesList(i, phonemCode),
-					position: 'bottom center',
-				});
+				phonemStart += transkription[i][1];
 			}
 
-			tblBody.appendChild(row);
-			tbl.appendChild(tblBody);
+			transkription.bind('add', function(ev, n, index) {
+				var phonemStart = index > 0 ? sIndex[index - 1] + transkription[index - 1][1] : 0;
 
-			tbl.style.width = document.querySelector('#waveform').childNodes[5].childNodes[1].style.width;
+				for (var i = 0; i < n.length; i++) {
+					var newId = drops.length + i;
+					diIndex[newId] = index + i;
+					dIndex[index + i] = newId;
+					sIndex[newId] = phonemStart;
 
-			document.querySelector('#phones').removeChild(document.querySelector('#phones').childNodes[0]);
-			document.querySelector('#phones').appendChild(tbl);
+					for (var j = 0; j < n[i][1]; j++) {
+						pIndex[phonemStart + j] = newId;
+					}
+
+					phonemStart += n[i][1];
+				}
+			});
+
+			var phones = can.view(
+						'phones-template',
+						{ transkription: transkription },
+						{ width:  function() { return wavesurfer.params.minPxPerSec / 100 * this[1] } }
+			);
+
+			$('#phones').html(phones);
 
 			document.querySelector('#waveform').childNodes[5].addEventListener('scroll', function(e) {
 				document.querySelector('#phones').scrollLeft = document.querySelector('#waveform').childNodes[5].scrollLeft;

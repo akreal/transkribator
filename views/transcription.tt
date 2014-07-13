@@ -1,6 +1,7 @@
 <script src="[% request.uri_base %]/javascripts/wavesurfer.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/wavesurfer.spectrogram.js"></script>
 <script src="[% request.uri_base %]/javascripts/drop.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/can.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/main.js"></script>
 
 
@@ -17,7 +18,21 @@
 
 <!-- <div id="wave-spectrogram"><spectrogram/></div> -->
 
-<div id="phones" style="overflow-x:hidden;overflow-y:auto;"><table></table></div>
+<div id="phones" style="overflow-x:hidden;overflow-y:auto;">
+<script type="text/mustache" id="phones-template">
+<table style="width: 0px;">
+<tbody>
+<tr>
+{{#each transkription}}
+<td class="phone-cell" style="max-width: {{width}}px; min-width: {{width}}px; width: {{width}}px;">
+<phone></phone>
+</td>
+{{/each}}
+</tr>
+</tbody>
+</table>
+</script>
+</div>
 
 <br/>
 
