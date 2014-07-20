@@ -17,6 +17,9 @@
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
         <li[% IF request.path == '/contact' %] class="active"[% END %]><a href="/contact">Contact</a></li>
+      [% IF session.admin %]
+        <li[% IF request.path == '/admin' %] class="active"[% END %]><a href="/admin">Admin</a></li>
+      [% END %]
       </ul>
 
       <ul class="nav navbar-nav navbar-right">

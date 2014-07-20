@@ -75,19 +75,21 @@ post '/login' => sub {
 	$username =~ s/^\s*//;
 	$username =~ s/\s*$//;
 
-	my $ppr;
+	my ($ppr, $properties);
 
-	my $row = database->quick_select('users', { 'username' => $username }, ['username', 'password', 'id']);
-	$row ||= database->quick_select('users', 'lower(email) = ' . database->quote(lc($username)), ['username', 'password', 'id']);
+	my $row = database->quick_select('users', { 'username' => $username }, ['username', 'password', 'id', 'properties']);
+	$row ||= database->quick_select('users', 'lower(email) = ' . database->quote(lc($username)), ['username', 'password', 'id', 'properties']);
 
 	if ($row) {
 		$username = $row->{'username'};
 		$ppr = Authen::Passphrase::BlowfishCrypt->from_crypt($row->{'password'});
+		$properties = from_json($row->{'properties'});
 	}
 
 	if ($ppr && $ppr->match(param('password'))) {
 		session username => $username;
 		session userid => $row->{'id'};
+		session admin => 1 if $properties->{'admin'} == 1;
 		#session->expires(86400); # TODO: check what happens in browser
 		redirect '/';
 	}
@@ -311,6 +313,16 @@ post '/utterance/upload' => sub {
 	database->quick_insert('transcriptions', { 'utterance' => $utt, 'transcription' => $transcription });
 
 	return { 'utt' => $utt, 'filename' => $filename };
+};
+
+get '/admin' => sub {
+	my $username = session('admin');
+
+	if (! session('admin')) {
+		send_error('This page does not exist', 404);
+	}
+
+	return template 'admin' => { 'title' => 'Admin' };
 };
 
 dance;
