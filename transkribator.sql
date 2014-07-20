@@ -30,6 +30,20 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- Name: phones; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+CREATE TABLE phones (
+    id integer NOT NULL,
+    pseudo text NOT NULL,
+    ipa text,
+    alternatives integer[] DEFAULT '{}'::integer[] NOT NULL
+);
+
+
+ALTER TABLE public.phones OWNER TO transkribator;
+
+--
 -- Name: transcriptions; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
 --
 
@@ -106,6 +120,14 @@ ALTER TABLE public.utterancies OWNER TO transkribator;
 --
 
 ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
+
+
+--
+-- Name: phones_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+ALTER TABLE ONLY phones
+    ADD CONSTRAINT phones_pkey PRIMARY KEY (id);
 
 
 --
