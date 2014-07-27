@@ -52,6 +52,7 @@ function pActivate (pId) {
 		if (drops[pId] != undefined) {
 			drops[pId].target.parentNode.parentNode.classList.add('highlight');
 			drops[pId].open();
+			setTimeout(function(){ drops[currentP].position() }, 10);
 		}
 
 		currentP = pId;
@@ -190,12 +191,28 @@ function generateCandidatesList(id, phonemCode) {
 	candidatesList.className = 'candidates-list';
 
 	if (editable) {
-		for (var j = 0; j < alternatives[phonemCode].length; j++) {
+		var phonem = phones[_f(phones,phonemCode)];
+
+		if (phonem.alternatives.length > 0) {
+			var alternative = phonem;
 			var candidate = document.createElement('span');
 
-			candidate.className = 'candidate';
-			candidate.innerHTML = phonemHTML[alternatives[phonemCode][j]];
-			eval('candidate.onclick = function () { changeBest(' + id + ', ' + alternatives[phonemCode][j] + '); };');
+			candidate.classList.add('phone', 'candidate');
+			candidate.classList.add(alternative.pseudo.substr(-1, 1));
+			candidate.innerHTML = alternative.ipa;
+			eval('candidate.onclick = function () { changeBest(' + id + ', ' + alternative.id + '); };');
+
+			candidatesList.appendChild(candidate);
+		}
+
+		for (var j = 0; j < phonem.alternatives.length; j++) {
+			var alternative = phones[_f(phones,phonem.alternatives[j])];
+			var candidate = document.createElement('span');
+
+			candidate.classList.add('phone', 'candidate');
+			candidate.classList.add(alternative.pseudo.substr(-1, 1));
+			candidate.innerHTML = alternative.ipa;
+			eval('candidate.onclick = function () { changeBest(' + id + ', ' + alternative.id + '); };');
 
 			candidatesList.appendChild(candidate);
 		}
@@ -207,10 +224,12 @@ function generateCandidatesList(id, phonemCode) {
 can.view.tag('phone', function(el, tagData){
 	var i = drops.length;
 	var phonemCode = tagData.scope.attr('0');
+	var phonem = phones[_f(phones,phonemCode)];
 
 	var best = document.createElement('div');
-	best.className = 'best';
-	best.innerHTML = phonemHTML[phonemCode];
+	best.classList.add('phone', 'best');
+	best.classList.add(phonem.pseudo.substr(-1, 1));
+	best.innerHTML = phonem.ipa;
 
 	drops.push(new Drop({
 				target: best,

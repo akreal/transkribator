@@ -1,3 +1,97 @@
-<h2>Phones</h2>
-<hr/>
+<script src="[% request.uri_base %]/javascripts/can.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/phones.js"></script>
+<script src="[% request.uri_base %]/javascripts/phones-modal.js"></script>
+
+<div id="phones-editor">
+<script type="text/mustache" id="phones-editor-template">
+<table class="table table-hover table-condensed">
+<thead>
+<tr>
+<th style="width: 65px;"><span style="margin-left: 9px;">Phone</span></th><th>Alternatives</th>
+</tr>
+</thead>
+<tbody>
+{{#each phones}}
+<tr>
+<td><phone></phone></td><td><alternatives></alternatives></td>
+</tr>
+{{/each}}
+</tbody>
+</table>
+</script>
+
+
+</div>
+<form class="form-horizontal" role="form" action="/phones" method="POST">
+	<input type="hidden" name="phones" />
+	<button type="submit" class="btn btn-default col-12" style="width: 100%;">Save</button>
+</form>
+
+
+<script>
+
+var phonesList = new can.List(phones);
+var phoneToEdit, newPhone;
+
+function removeAlternative(phoneId, alternativeId) {
+	var i = _f(phonesList, phoneId);
+	var newPhone = {'id': phonesList[i].id, 'pseudo': phonesList[i].pseudo, 'ipa': phonesList[i].ipa, 'alternatives': phonesList[i].alternatives};
+	newPhone.alternatives.splice(alternativeId, 1);
+	phonesList.splice(i, 1, newPhone);
+}
+
+function addAlternative(phoneId) {
+	phoneToEdit = _f(phonesList, phoneId);
+	newPhone = {'id': phonesList[phoneToEdit].id, 'pseudo': phonesList[phoneToEdit].pseudo, 'ipa': phonesList[phoneToEdit].ipa, 'alternatives': phonesList[phoneToEdit].alternatives};
+	phoneFromModal = null;
+	$('.phones-modal').modal('show');
+	$('.phones-modal').off('hidden.bs.modal');
+	$('.phones-modal').on('hidden.bs.modal', function (e) { if (phoneFromModal) { newPhone.alternatives.push(phoneFromModal); phonesList.splice(phoneToEdit, 1, newPhone) } });
+}
+
+
+can.view.tag('phone', function(el, tagData){
+	var element = document.createElement('a');
+	element.classList.add('phone', 'btn', 'disabled');
+	element.classList.add(tagData.scope.attr('pseudo').substr(-1, 1));
+	element.innerHTML = tagData.scope.attr('ipa');
+
+	$(el).html(element);
+});
+
+can.view.tag('alternatives', function(el, tagData){
+	var element = document.createElement('div');
+
+	var alternatives = tagData.scope.attr('alternatives');
+
+	for (var i = 0; i < alternatives.length; i++) {
+		var alternativePhone = phonesList[_f(phonesList, alternatives[i])];
+		var alternative = document.createElement('a');
+		alternative.classList.add('phone', 'btn', 'btn-default', 'alternative');
+		alternative.classList.add(alternativePhone.pseudo.substr(-1, 1));
+		alternative.onmouseover = function() { this.classList.add('bg-danger') };
+		alternative.onmouseout = function() { this.classList.remove('bg-danger') };
+		eval('alternative.onclick = function () { removeAlternative(' + tagData.scope.attr('id') + ', ' + i + '); };');
+		alternative.innerHTML = alternativePhone.ipa;
+		element.appendChild(alternative);
+	}
+
+	var add = document.createElement('a');
+	add.classList.add('phone', 'btn', 'btn-default', 'add');
+	add.innerHTML = '+';
+	add.onmouseover = function() { this.classList.add('bg-success') };
+	add.onmouseout = function() { this.classList.remove('bg-success') };
+	eval('add.onclick = function () { addAlternative(' + tagData.scope.attr('id') + '); };');
+	element.appendChild(add);
+
+	$(el).html(element);
+});
+
+var phonesEditor = can.view('phones-editor-template', { phones: phonesList });
+
+$('#phones-editor').html(phonesEditor);
+
+document.forms[0].onsubmit = function() { document.forms[0].phones.value = JSON.stringify(phonesList.attr());};
+</script>
+
 

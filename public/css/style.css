@@ -75,7 +75,6 @@ a:hover {
     background: violet; 
 }
 
-
 .drop-element {
 	display: none;
 }
@@ -96,7 +95,6 @@ span.candidate {
 	padding-left: 5px;
 	padding-right: 5px;
     font-family: "Charis SIL", "Doulos SIL", Gentium, "Arial Unicode MS","Lucida Sans Unicode", Arial, Serif;
-	color: #000000;
 	background: #dddddd;
 	cursor: pointer;
 }
@@ -104,3 +102,35 @@ span.candidate {
 span.candidate:hover, span.candidate.highlight {
 	background: #f6f6f6;
 }
+
+.phone {
+    font-family: "Charis SIL", "Doulos SIL", Gentium, "Arial Unicode MS","Lucida Sans Unicode", Arial, Serif;
+}
+
+.phone.alternative:hover {
+	cursor: url(../remove.png), auto;
+}
+
+.phone.btn {
+	width: 50px;
+	margin: 3px;
+	padding-left: 0px;
+	padding-right: 0px;
+}
+
+.B {  /* beginning */
+	color: #0c9a00;
+}
+
+.E { /* ending */
+	color: #CD1901;
+}
+
+.I { /* inside */
+	color: #0D00CD;
+}
+
+.S, .L { /* separate */
+	color: #000000;
+}
+

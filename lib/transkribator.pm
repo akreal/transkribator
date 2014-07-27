@@ -316,13 +316,25 @@ post '/utterance/upload' => sub {
 };
 
 get '/admin' => sub {
-	my $username = session('admin');
-
 	if (! session('admin')) {
 		send_error('This page does not exist', 404);
 	}
 
 	return template 'admin' => { 'title' => 'Admin' };
+};
+
+any '/phones' => sub {
+	if (! session('admin')) {
+		send_error('This page does not exist', 404);
+	}
+
+	my $phones = param('phones');
+
+	if ($phones && from_json($phones)) {
+		write_file(config->{appdir} . '/public/javascripts/phones.js', 'var phones=' . $phones . ';function _f(list,id){for(var i=0;i<list.length;i++){if(list[i].id==id){return i;}}}');
+	}
+
+	return template 'phones' => { 'title' => 'Phones' };
 };
 
 dance;
