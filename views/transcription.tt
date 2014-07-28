@@ -6,6 +6,7 @@
 var editable = [% IF editable %]true[% ELSE %]false[% END %];
 </script>
 <script src="[% request.uri_base %]/javascripts/phones.js"></script>
+<script src="[% request.uri_base %]/javascripts/phones-modal.js"></script>
 <script src="[% request.uri_base %]/javascripts/main.js"></script>
 
 

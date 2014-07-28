@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 var drops = new Array();
 
-var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, transkriptionChanged;
+var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, transkriptionChanged, originalTargetHTML, originalTargetClass;
 
 function pActivate (pId) {
 	if (currentP != pId) {
@@ -51,6 +51,8 @@ function pActivate (pId) {
 		}
 		if (drops[pId] != undefined) {
 			drops[pId].target.parentNode.parentNode.classList.add('highlight');
+			originalTargetHTML = drops[pId].target.innerHTML;
+			originalTargetClass = drops[pId].target.getAttribute('phonem-class');
 			drops[pId].open();
 			setTimeout(function(){ drops[currentP].position() }, 10);
 		}
@@ -69,6 +71,17 @@ function pDeactivate (pId) {
 		candidates[i].classList.remove('highlight');
 	}
 
+	currentC = undefined;
+	originalTargetHTML = undefined;
+}
+
+function exitCandidates() {
+	if (drops[currentP] != undefined && originalTargetHTML != undefined) {
+		drops[currentP].target.innerHTML = originalTargetHTML;
+		drops[currentP].target.classList.remove('B','E','I','S','L');
+		drops[currentP].target.classList.add(originalTargetClass);
+	}
+	drops.forEach(function(drop) {drop.close();});
 	currentC = undefined;
 }
 
@@ -92,6 +105,8 @@ function pDeactivate (pId) {
 					candidates[currentC].classList.remove('highlight');
 					candidates[newCurrentC].classList.add('highlight');
 					drops[currentP].target.innerHTML = drops[currentP].content.childNodes[0].childNodes[newCurrentC].innerHTML;
+					drops[currentP].target.classList.remove('B','E','I','S','L');
+					drops[currentP].target.classList.add(drops[currentP].content.childNodes[0].childNodes[newCurrentC].getAttribute('phonem-class'));
 					currentC = newCurrentC;
 				}
 			}
@@ -112,13 +127,14 @@ function pDeactivate (pId) {
 				candidates[currentC].classList.remove('highlight');
 				candidates[newCurrentC].classList.add('highlight');
 				drops[currentP].target.innerHTML = drops[currentP].content.childNodes[0].childNodes[newCurrentC].innerHTML;
+				drops[currentP].target.classList.remove('B','E','I','S','L');
+				drops[currentP].target.classList.add(drops[currentP].content.childNodes[0].childNodes[newCurrentC].getAttribute('phonem-class'));
 				currentC = newCurrentC;
 			}
         },
 
         'escape': function () {
-			drops.forEach(function(drop) {drop.close();});
-			currentC = undefined;
+			exitCandidates();
         },
 
         'down': function () {
@@ -152,8 +168,8 @@ function pDeactivate (pId) {
             39: 'forth',      // right
             40: 'down',      // right
         };
-        if (e.keyCode in map) {
-            var handler = eventHandlers[map[e.keyCode]];
+        if (e.keyCode in map && !$('.phones-modal')[0].classList.contains('in')) {
+		    var handler = eventHandlers[map[e.keyCode]];
             e.preventDefault();
             handler && handler(e);
         }
@@ -186,6 +202,13 @@ function changeBest(id, newBest) {
 	}
 }
 
+function changeBestModal(id) {
+	phoneFromModal = null;
+	$('.phones-modal').modal('show');
+	$('.phones-modal').off('hidden.bs.modal');
+	$('.phones-modal').on('hidden.bs.modal', function (e) { if (phoneFromModal) { changeBest(id, phoneFromModal) } else { exitCandidates() } });
+}
+
 function generateCandidatesList(id, phonemCode) {
 	var candidatesList = document.createElement('div');
 	candidatesList.className = 'candidates-list';
@@ -198,7 +221,8 @@ function generateCandidatesList(id, phonemCode) {
 			var candidate = document.createElement('span');
 
 			candidate.classList.add('phone', 'candidate');
-			candidate.classList.add(alternative.pseudo.substr(-1, 1));
+			candidate.setAttribute('phonem-class', alternative.pseudo.substr(-1, 1));
+			candidate.classList.add(candidate.getAttribute('phonem-class'));
 			candidate.innerHTML = alternative.ipa;
 			eval('candidate.onclick = function () { changeBest(' + id + ', ' + alternative.id + '); };');
 
@@ -210,12 +234,21 @@ function generateCandidatesList(id, phonemCode) {
 			var candidate = document.createElement('span');
 
 			candidate.classList.add('phone', 'candidate');
-			candidate.classList.add(alternative.pseudo.substr(-1, 1));
+			candidate.setAttribute('phonem-class', alternative.pseudo.substr(-1, 1));
+			candidate.classList.add(candidate.getAttribute('phonem-class'));
 			candidate.innerHTML = alternative.ipa;
 			eval('candidate.onclick = function () { changeBest(' + id + ', ' + alternative.id + '); };');
 
 			candidatesList.appendChild(candidate);
 		}
+
+		var candidate = document.createElement('span');
+
+		candidate.classList.add('phone', 'candidate');
+		candidate.innerHTML = '&hellip;';
+		eval('candidate.onclick = function () { changeBestModal(' + id + '); };');
+
+		candidatesList.appendChild(candidate);
 	}
 
 	return candidatesList;
@@ -228,7 +261,8 @@ can.view.tag('phone', function(el, tagData){
 
 	var best = document.createElement('div');
 	best.classList.add('phone', 'best');
-	best.classList.add(phonem.pseudo.substr(-1, 1));
+	best.setAttribute('phonem-class', phonem.pseudo.substr(-1, 1));
+	best.classList.add(best.getAttribute('phonem-class'));
 	best.innerHTML = phonem.ipa;
 
 	drops.push(new Drop({
