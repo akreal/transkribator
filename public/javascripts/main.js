@@ -181,7 +181,29 @@ function exitCandidates() {
 
 				pActivate(drops.length - 1);
 			}
-        }
+        },
+
+		'ins': function () {
+			if (drops[currentP] != undefined) {
+				var index = diIndex[currentP];
+				var newLength = transkription[index][1] / 2;
+
+				phoneFromModal = null;
+				$('.phones-modal').modal('show');
+				$('.phones-modal').off('hidden.bs.modal');
+				$('.phones-modal').on('hidden.bs.modal',
+					function (e) {
+						if (phoneFromModal) {
+									transkription.splice(index, 1,
+										[phoneFromModal, Math.ceil(newLength)],
+										[transkription[index][0], Math.floor(newLength)]);
+									pActivate(drops.length - 2);
+						}
+					}
+				);
+
+			}
+		}
     };
 
     document.addEventListener('keydown', function (e) {
@@ -193,6 +215,7 @@ function exitCandidates() {
             38: 'enter',	// up
             39: 'forth',	// right
             40: 'down',		// right
+            45: 'ins',		// insert
             46: 'del',		// delete
         };
         if (e.keyCode in map && !$('.phones-modal')[0].classList.contains('in')) {
