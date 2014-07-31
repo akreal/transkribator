@@ -75,6 +75,17 @@ function pDeactivate (pId) {
 	originalTargetHTML = undefined;
 }
 
+function invertArray (input) {
+	var output = new Array();
+
+	for (var i = 0; i < input.length; i++) {
+		output[input[i]] = i;
+	}
+
+	return output;
+}
+
+
 function exitCandidates() {
 	if (drops[currentP] != undefined && originalTargetHTML != undefined) {
 		drops[currentP].target.innerHTML = originalTargetHTML;
@@ -95,8 +106,8 @@ function exitCandidates() {
         'back': function () {
 			if (wavesurfer.backend.isPaused()) {
 				if (currentC == undefined || drops[currentP] == undefined) {
-					if (currentP != 0) {
-						wavesurfer.seekAndCenter( (sIndex[dIndex[(diIndex[currentP] || transkription.length) - 1]] * 1.002) / duration );
+					if (diIndex[currentP] != 0) {
+						wavesurfer.seekAndCenter( sIndex[diIndex[currentP] - 1] * 1.002 / duration );
 					}
 				}
 				else {
@@ -115,10 +126,10 @@ function exitCandidates() {
 			}
         },
 
-        'forth': function () {
+		'forth': function () {
 			if (currentC == undefined || drops[currentP] == undefined) {
 				if (diIndex[currentP] != transkription.length - 1) {
-					wavesurfer.seekAndCenter( (sIndex[dIndex[(diIndex[currentP] + 1) || 1]] * 1.002) / duration );
+					wavesurfer.seekAndCenter( sIndex[diIndex[currentP] + 1] * 1.002 / duration );
 				}
 			}
 			else {
@@ -131,7 +142,7 @@ function exitCandidates() {
 				drops[currentP].target.classList.add(drops[currentP].content.childNodes[0].childNodes[newCurrentC].getAttribute('phonem-class'));
 				currentC = newCurrentC;
 			}
-        },
+		},
 
         'escape': function () {
 			exitCandidates();
@@ -155,18 +166,34 @@ function exitCandidates() {
 				drops[currentP].content.childNodes[0].childNodes[currentC].click();
 				currentC = undefined;
 			}
+		},
+
+        'del': function () {
+            if (drops[currentP] != undefined) {
+				var index2del = diIndex[currentP];
+
+				if (index2del == transkription.length - 1) {
+					transkription.splice(index2del - 1, 2, [transkription[index2del - 1][0], transkription[index2del - 1][1] + transkription[index2del][1]]);
+				}
+				else {
+					transkription.splice(index2del, 2, [transkription[index2del + 1][0], transkription[index2del][1] + transkription[index2del + 1][1]]);
+				}
+
+				pActivate(drops.length - 1);
+			}
         }
     };
 
     document.addEventListener('keydown', function (e) {
         var map = {
-            13: 'enter',      // enter
-            27: 'escape',     // escape
-            32: 'play',       // space
-            37: 'back',       // left
-            38: 'enter',     // up
-            39: 'forth',      // right
-            40: 'down',      // right
+            13: 'enter',	// enter
+            27: 'escape',	// escape
+            32: 'play',		// space
+            37: 'back',		// left
+            38: 'enter',	// up
+            39: 'forth',	// right
+            40: 'down',		// right
+            46: 'del',		// delete
         };
         if (e.keyCode in map && !$('.phones-modal')[0].classList.contains('in')) {
 		    var handler = eventHandlers[map[e.keyCode]];
@@ -317,14 +344,23 @@ wavesurfer.on('ready', function () {
 				phonemStart += transkription[i][1];
 			}
 
+			transkription.bind('remove', function(ev, n, index) {
+				for (var i = 0; i < n.length; i++) {
+					dIndex.splice(index, 1);
+					sIndex.splice(index, 1);
+				}
+
+				diIndex = invertArray(dIndex);
+				transkriptionChanged = true;
+			});
+
 			transkription.bind('add', function(ev, n, index) {
 				var phonemStart = index > 0 ? sIndex[index - 1] + transkription[index - 1][1] : 0;
 
 				for (var i = 0; i < n.length; i++) {
 					var newId = drops.length + i;
-					diIndex[newId] = index + i;
-					dIndex[index + i] = newId;
-					sIndex[newId] = phonemStart;
+					dIndex.splice(index + i, 0, newId);
+					sIndex.splice(index + i, 0, phonemStart);
 
 					for (var j = 0; j < n[i][1]; j++) {
 						pIndex[phonemStart + j] = newId;
@@ -333,6 +369,7 @@ wavesurfer.on('ready', function () {
 					phonemStart += n[i][1];
 				}
 
+				diIndex = invertArray(dIndex);
 				transkriptionChanged = true;
 			});
 
