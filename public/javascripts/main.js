@@ -148,6 +148,22 @@ function exitCandidates() {
 			exitCandidates();
         },
 
+		'home': function () {
+			wavesurfer.seekAndCenter(0);
+		},
+
+		'end': function () {
+			wavesurfer.seekAndCenter( sIndex[sIndex.length - 1] * 1.002 / duration );
+		},
+
+		'pageup': function () {
+			wavesurfer.seekAndCenter( sIndex[ Math.min(diIndex[currentP] + 5, sIndex.length - 1) ] * 1.002 / duration );
+		},
+
+		'pagedown': function () {
+			wavesurfer.seekAndCenter( sIndex[ Math.max(diIndex[currentP] - 5, 0) ] * 1.002 / duration );
+		},
+
         'down': function () {
             if (drops[currentP] != undefined) {
 				if (!drops[currentP].isOpened()) {
@@ -211,6 +227,10 @@ function exitCandidates() {
             13: 'enter',	// enter
             27: 'escape',	// escape
             32: 'play',		// space
+            33: 'pageup',	// pageup
+            34: 'pagedown',	// pagedown
+            35: 'end',		// end
+            36: 'home',		// home
             37: 'back',		// left
             38: 'enter',	// up
             39: 'forth',	// right
