@@ -258,7 +258,13 @@ wavesurfer.on('error', function (err) {
 });
 
 wavesurfer.on('progress', function (e) {
-	pActivate(pIndex[Math.floor(wavesurfer.getCurrentTime() * 100)]);
+	var activeP = pIndex[Math.floor(wavesurfer.getCurrentTime() * 100)];
+
+	if (activeP == undefined) {
+		activeP = drops.length - 1;
+	}
+
+	pActivate(activeP);
 });
 
 var transkription;
