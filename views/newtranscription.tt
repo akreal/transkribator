@@ -52,12 +52,13 @@ $(function () {
         dataType: 'json',
         start: function (e, data) {
 			$('#fileupload-button').css('display', 'none');
+			$('#progress .progress-bar').text('');
 		    $('#progress').css('display', 'block');
         },
         done: function (e, data) {
 			$('#progress').css('display', 'none');
             $('#progress .progress-bar').css('width', '0%');
-			$('#fileupload-success-message')[0].innerHTML = data.result.filename + ' is uploaded';
+			$('#fileupload-success-message')[0].innerHTML = data.result.filename + ' is uploaded and transcribed';
 			$('#fileupload-success-message').css('display', 'block');
 			$('#utt')[0].value = data.result.utt;
         },
@@ -67,6 +68,10 @@ $(function () {
                 'width',
                 progress + '%'
             );
+
+			if (progress == 100) {
+				$('#progress .progress-bar').text('Transcribing, please wait...');
+			}
         }
     }).prop('disabled', !$.support.fileInput)
         .parent().addClass($.support.fileInput ? undefined : 'disabled');
