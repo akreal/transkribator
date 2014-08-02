@@ -204,7 +204,6 @@ function exitCandidates() {
 				var index = diIndex[currentP];
 				var newLength = transkription[index][1] / 2;
 
-				phoneFromModal = null;
 				$('.phones-modal').modal('show');
 				$('.phones-modal').off('hidden.bs.modal');
 				$('.phones-modal').on('hidden.bs.modal',
@@ -234,7 +233,7 @@ function exitCandidates() {
             37: 'back',		// left
             38: 'enter',	// up
             39: 'forth',	// right
-            40: 'down',		// right
+            40: 'down',		// down
             45: 'ins',		// insert
             46: 'del',		// delete
         };
@@ -279,7 +278,6 @@ function changeBest(id, newBest) {
 }
 
 function changeBestModal(id) {
-	phoneFromModal = null;
 	$('.phones-modal').modal('show');
 	$('.phones-modal').off('hidden.bs.modal');
 	$('.phones-modal').on('hidden.bs.modal', function (e) { if (phoneFromModal) { changeBest(id, phoneFromModal) } else { exitCandidates() } });

@@ -1,4 +1,4 @@
-var phoneFromModal;
+var phoneFromModal, curPhoneFromModal;
 
 var modalContent = document.createElement('div');
 modalContent.classList.add('modal-content');
@@ -9,6 +9,7 @@ for (var i = 1; i < phones.length; i++) {
 	phoneElement.classList.add(phones[i].pseudo.substr(-1, 1));
 	eval('phoneElement.onclick = function () { phoneFromModal=' + phones[i].id + '; $(".phones-modal").modal("hide"); };');
 	phoneElement.innerHTML = phones[i].ipa;
+	phoneElement.id = 'p-' + i;
 	modalContent.appendChild(phoneElement);
 
 	if (i % 16 == 0) {
@@ -29,4 +30,60 @@ phonesModal.setAttribute('aria-hidden', 'true');
 phonesModal.appendChild(modalDialog);
 
 document.body.appendChild(phonesModal);
+
+function updateModalView() {
+	$('a.btn.phone').removeClass('active');
+	$('#p-' + curPhoneFromModal).addClass('active');
+}
+
+var eventHandlers = {
+		'enter': function () {
+			$('#p-' + curPhoneFromModal).trigger('click');
+		},
+
+		'left': function () {
+			if (curPhoneFromModal > 1) {
+				curPhoneFromModal--;
+				updateModalView();
+			}
+		},
+
+		'right': function () {
+			if (curPhoneFromModal < phones.length - 1) {
+				curPhoneFromModal++;
+				updateModalView();
+			}
+		},
+
+		'up': function () {
+			if (curPhoneFromModal > 16) {
+				curPhoneFromModal -= 16;
+				updateModalView();
+			}
+		},
+
+		'down': function () {
+			if (curPhoneFromModal < phones.length - 16) {
+				curPhoneFromModal += 16;
+				updateModalView();
+			}
+		}
+};
+
+document.addEventListener('keydown', function (e) {
+	var map = {
+		13: 'enter',	// enter
+		37: 'left',		// left
+		38: 'up',		// up
+		39: 'right',	// right
+		40: 'down',		// down
+	};
+	if (e.keyCode in map && $('.phones-modal')[0].classList.contains('in')) {
+		var handler = eventHandlers[map[e.keyCode]];
+		e.preventDefault();
+		handler && handler(e);
+	}
+});
+
+$('.phones-modal').on('show.bs.modal', function () { phoneFromModal = undefined; curPhoneFromModal = 1; updateModalView(); });
 
