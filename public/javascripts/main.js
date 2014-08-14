@@ -269,7 +269,7 @@ wavesurfer.on('progress', function (e) {
 	var activeP = pIndex[Math.floor(wavesurfer.getCurrentTime() * 100)];
 
 	if (activeP == undefined) {
-		activeP = transkription.length - 1;
+		activeP = dIndex[transkription.length - 1];
 	}
 
 	pActivate(activeP);
