@@ -114,10 +114,6 @@ get '/faq' => sub {
 	return template 'faq' => { 'title' => 'FAQ' };
 };
 
-get '/contact' => sub {
-	return template 'contact' => { 'title' => 'Contact' };
-};
-
 get '/settings' => sub {
 	return template 'settings' => { 'title' => 'Settings' };
 };
