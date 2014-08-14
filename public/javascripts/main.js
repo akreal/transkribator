@@ -199,6 +199,14 @@ function exitCandidates() {
 			}
         },
 
+        'backspace': function () {
+			var index2del = diIndex[currentP] - 1;
+            if (drops[currentP] != undefined && index2del != -1) {
+				transkription.splice(index2del, 2, [transkription[index2del + 1][0], transkription[index2del][1] + transkription[index2del + 1][1]]);
+				wavesurfer.seekAndCenter( sIndex[index2del] * 1.002 / duration );
+			}
+        },
+
 		'ins': function () {
 			if (drops[currentP] != undefined) {
 				var index = diIndex[currentP];
@@ -223,6 +231,7 @@ function exitCandidates() {
 
     document.addEventListener('keydown', function (e) {
         var map = {
+             8: 'backspace',// backspace
             13: 'enter',	// enter
             27: 'escape',	// escape
             32: 'play',		// space
