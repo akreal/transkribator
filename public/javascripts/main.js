@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 var drops = new Array();
 
-var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, transkriptionChanged, originalTargetHTML, originalTargetClass;
+var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, transkriptionChanged, originalTargetHTML, originalTargetClass, selectionDirection;
 
 function pActivate (pId) {
 	if (currentP != pId) {
@@ -103,11 +103,51 @@ function exitCandidates() {
             wavesurfer.playPause();
         },
 
-        'back': function () {
+        'back': function (e) {
 			if (wavesurfer.backend.isPaused()) {
 				if (currentC == undefined || drops[currentP] == undefined) {
-					if (diIndex[currentP] != 0) {
-						wavesurfer.seekAndCenter( sIndex[diIndex[currentP] - 1] * 1.002 / duration );
+					if (e.shiftKey) {
+						var selection = wavesurfer.getSelection();
+
+						if (selection != undefined &&
+							wavesurfer.getCurrentTime() >= selection.startPosition &&
+							wavesurfer.getCurrentTime() <= selection.endPosition
+						) {
+							if (selectionDirection == 'right') {
+								if (pIndex[Math.floor(selection.startPosition * 100)] == pIndex[Math.floor(selection.endPosition * 100)]) {
+									wavesurfer.seekAndCenter(selection.startPercentage);
+									selection = undefined;
+									selectionDirection = '';
+								}
+								else {
+									selection.endPercentage = ((sIndex[pIndex[Math.floor(selection.endPosition * 100) + 1] - 1] || duration) - 1) / duration;
+								}
+							}
+							else {
+								selection.startPercentage = (sIndex[pIndex[Math.floor(selection.startPosition * 100) + 1] - 1] || 0) / duration;
+								wavesurfer.seekAndCenter(selection.startPercentage + 1 / duration);
+							}
+						}
+						else {
+							selection = {
+								startPercentage: (sIndex[diIndex[currentP] - 1] || 0) / duration,
+								endPercentage: (sIndex[diIndex[currentP]] - 1) / duration
+							};
+							wavesurfer.seekAndCenter(selection.startPercentage + 1 / duration);
+							selectionDirection = 'left';
+						}
+
+						if (selection) {
+							wavesurfer.updateSelection(selection);
+						}
+						else {
+							wavesurfer.clearSelection();
+						}
+					}
+					else {
+						if (diIndex[currentP] != 0) {
+							wavesurfer.seekAndCenter( sIndex[diIndex[currentP] - 1] * 1.002 / duration );
+						}
 					}
 				}
 				else {
@@ -126,10 +166,49 @@ function exitCandidates() {
 			}
         },
 
-		'forth': function () {
+		'forth': function (e) {
 			if (currentC == undefined || drops[currentP] == undefined) {
-				if (diIndex[currentP] != transkription.length - 1) {
-					wavesurfer.seekAndCenter( sIndex[diIndex[currentP] + 1] * 1.002 / duration );
+				if (e.shiftKey) {
+					var selection = wavesurfer.getSelection();
+
+					if (selection != undefined &&
+						wavesurfer.getCurrentTime() >= selection.startPosition &&
+						wavesurfer.getCurrentTime() <= selection.endPosition
+					) {
+						if (selectionDirection == 'right') {
+							selection.endPercentage = ((sIndex[pIndex[Math.floor(selection.endPosition * 100) + 1] + 1] || duration) - 1) / duration;
+						}
+						else {
+							if (pIndex[Math.floor(selection.startPosition * 100)] == pIndex[Math.floor(selection.endPosition * 100)]) {
+								wavesurfer.seekAndCenter( (sIndex[pIndex[Math.floor(selection.endPosition * 100)] + 1] * 1.002 || duration) / duration );
+								selection = undefined;
+								selectionDirection = '';
+							}
+							else {
+								selection.startPercentage = (sIndex[pIndex[Math.floor(selection.startPosition * 100) + 1] + 1] * 1.002 || duration) / duration;
+								wavesurfer.seekAndCenter(selection.startPercentage);
+							}
+						}
+					}
+					else {
+						selection = {
+							startPercentage: sIndex[diIndex[currentP]] / duration,
+							endPercentage: ((sIndex[diIndex[currentP] + 1] || duration) - 1) / duration
+						};
+						selectionDirection = 'right';
+					}
+
+					if (selection) {
+						wavesurfer.updateSelection(selection);
+					}
+					else {
+						wavesurfer.clearSelection();
+					}
+				}
+				else {
+					if (diIndex[currentP] != transkription.length - 1) {
+						wavesurfer.seekAndCenter( sIndex[diIndex[currentP] + 1] * 1.002 / duration );
+					}
 				}
 			}
 			else {
