@@ -12,8 +12,6 @@ use DBD::Pg;
 use File::MMagic;
 use tutils;
 
-set serializer => 'JSON';
-
 our $VERSION = '0.1';
 
 get '/' => sub {
@@ -267,7 +265,7 @@ get '/transcriptions/:utt' => sub {
 	}
 	elsif ($type eq 'json') {
 		my $transkription = database->quick_select('transcriptions', { 'utterance' => $utt }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
-		return $transkription->{'transcription'};
+		return to_json($transkription->{'transcription'});
 	}
 	elsif ($type eq 'file') {
 		my $mm = File::MMagic->new;
@@ -284,7 +282,7 @@ post '/utterance/upload' => sub {
 	my $username = session('username');
 
 	if (! $username) {
-		return { 'utt' => undef, 'error' => 'You need to be logged in' };
+		return to_json({ 'utt' => undef, 'error' => 'You need to be logged in' });
 	}
 
 	my $ug = Data::UUID->new;
@@ -308,7 +306,7 @@ post '/utterance/upload' => sub {
 	my $transcription = tutils::transkript("$tempname.wav");
 	database->quick_insert('transcriptions', { 'utterance' => $utt, 'transcription' => $transcription });
 
-	return { 'utt' => $utt, 'filename' => $filename };
+	return to_json({ 'utt' => $utt, 'filename' => $filename });
 };
 
 get '/admin' => sub {
