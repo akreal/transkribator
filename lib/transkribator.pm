@@ -100,7 +100,7 @@ post '/login' => sub {
 };
 
 get '/logout' => sub {
-	context->destroy_session;
+	app->destroy_session;
 	return template 'logout' => { 'title' => 'Log out' };
 };
 
