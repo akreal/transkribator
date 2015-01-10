@@ -105,14 +105,17 @@ get '/logout' => sub {
 };
 
 get '/about' => sub {
+	session();
 	return template 'about' => { 'title' => 'About' };
 };
 
 get '/faq' => sub {
+	session();
 	return template 'faq' => { 'title' => 'FAQ' };
 };
 
 get '/settings' => sub {
+	session();
 	return template 'settings' => { 'title' => 'Settings' };
 };
 
