@@ -8,9 +8,6 @@ use Carp;
 use File::Slurp;
 use File::Temp 'tempdir';
 
-my $kaldi_root = $ENV{'KALDIROOT'};
-$ENV{'PATH'} = "$kaldi_root/src/bin:$kaldi_root/src/fstbin/:$kaldi_root/src/gmmbin/:$kaldi_root/src/featbin/:$kaldi_root/src/lm/:$kaldi_root/src/sgmmbin/:$kaldi_root/src/sgmm2bin/:$kaldi_root/src/fgmmbin/:$kaldi_root/src/latbin/:$ENV{'PATH'}";
-
 my $model = $ENV{'KALDIMODEL'};
 my $beam = 10.0;
 my $acoustic_scale = 0.083;
@@ -33,7 +30,7 @@ sub transkript {
 	cmd("compute-mfcc-feats  --verbose=2 --use-energy=false scp:$tmpdir/wav.scp ark:- | ".
 		"copy-feats --compress=false ark:- ark,scp:$tmpdir/feats.ark,$tmpdir/feats.scp");
 	cmd("compute-cmvn-stats --spk2utt=ark:$tmpdir/spk2utt scp:$tmpdir/feats.scp ark,scp:$tmpdir/cmvn.ark,$tmpdir/cmvn.scp");
-	cmd("gmm-latgen-faster --allow-partial=true --beam=$beam --acoustic-scale=$acoustic_scale --max-arcs=-1 ".
+	cmd("gmm-latgen-faster --allow-partial=true --beam=$beam --acoustic-scale=$acoustic_scale ".
 		"--lattice-beam=$lattice_beam $model/final.alimdl $model/HCLG.fst \"ark,s,cs:apply-cmvn --norm-vars=false ".
 		"--utt2spk=ark,t:$tmpdir/utt2spk scp:$tmpdir/cmvn.scp scp:$tmpdir/feats.scp ark:- | splice-feats  ark:- ark:- | ".
 		"transform-feats $model/final.mat ark:- ark:- |\" \"ark,t:|gzip -c > $tmpdir/utt.lat.gz\"");
@@ -44,7 +41,7 @@ sub transkript {
 		"scp:$tmpdir/feats.scp ark:- | splice-feats ark:- ark:- | transform-feats $model/final.mat ark:- ark:- |".
 		"\" ark,s,cs:- ark:$tmpdir/pre_trans");
 	cmd("gmm-latgen-faster --max-active=7000 --beam=$beam --lattice-beam=$lattice_beam --acoustic-scale=$acoustic_scale ".
-		"--max-arcs=-1 --determinize-lattice=false --allow-partial=true  $model/final.mdl $model/HCLG.fst ".
+		"--determinize-lattice=false --allow-partial=true  $model/final.mdl $model/HCLG.fst ".
 		"\"ark,s,cs:apply-cmvn --norm-vars=false --utt2spk=ark:$tmpdir/utt2spk scp:$tmpdir/cmvn.scp ".
 		"scp:$tmpdir/feats.scp ark:- | splice-feats  ark:- ark:- | transform-feats $model/final.mat ark:- ark:- | ".
 		"transform-feats --utt2spk=ark:$tmpdir/utt2spk ark:$tmpdir/pre_trans ark:- ark:- |\" ".
