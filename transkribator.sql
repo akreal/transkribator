@@ -23,11 +23,61 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
+--
+-- Name: lo; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS lo WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION lo; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION lo IS 'Large Object maintenance';
+
+
 SET search_path = public, pg_catalog;
 
 SET default_tablespace = '';
 
 SET default_with_oids = false;
+
+--
+-- Name: files; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+CREATE TABLE files (
+    id integer NOT NULL,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    updated timestamp without time zone DEFAULT now() NOT NULL,
+    properties json DEFAULT '{}'::json NOT NULL,
+    data lo NOT NULL
+);
+
+
+ALTER TABLE files OWNER TO transkribator;
+
+--
+-- Name: files_id_seq; Type: SEQUENCE; Schema: public; Owner: transkribator
+--
+
+CREATE SEQUENCE files_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE files_id_seq OWNER TO transkribator;
+
+--
+-- Name: files_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: transkribator
+--
+
+ALTER SEQUENCE files_id_seq OWNED BY files.id;
+
 
 --
 -- Name: transcriptions; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
@@ -41,7 +91,7 @@ CREATE TABLE transcriptions (
 );
 
 
-ALTER TABLE public.transcriptions OWNER TO transkribator;
+ALTER TABLE transcriptions OWNER TO transkribator;
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
@@ -57,7 +107,7 @@ CREATE TABLE users (
 );
 
 
-ALTER TABLE public.users OWNER TO transkribator;
+ALTER TABLE users OWNER TO transkribator;
 
 --
 -- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: transkribator
@@ -71,7 +121,7 @@ CREATE SEQUENCE users_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.users_id_seq OWNER TO transkribator;
+ALTER TABLE users_id_seq OWNER TO transkribator;
 
 --
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: transkribator
@@ -93,19 +143,34 @@ CREATE TABLE utterancies (
     description text,
     created timestamp without time zone DEFAULT now() NOT NULL,
     updated timestamp without time zone DEFAULT now() NOT NULL,
-    data bytea NOT NULL,
     properties json DEFAULT '{}'::json NOT NULL,
-    cdata bytea
+    datafile integer,
+    cdatafile integer
 );
 
 
-ALTER TABLE public.utterancies OWNER TO transkribator;
+ALTER TABLE utterancies OWNER TO transkribator;
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: transkribator
+--
+
+ALTER TABLE ONLY files ALTER COLUMN id SET DEFAULT nextval('files_id_seq'::regclass);
+
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: transkribator
 --
 
 ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
+
+
+--
+-- Name: files_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+ALTER TABLE ONLY files
+    ADD CONSTRAINT files_pkey PRIMARY KEY (id);
 
 
 --
@@ -130,6 +195,20 @@ ALTER TABLE ONLY users
 
 ALTER TABLE ONLY utterancies
     ADD CONSTRAINT utterancies_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: files_created_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+CREATE INDEX files_created_idx ON files USING btree (created);
+
+
+--
+-- Name: files_updated_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+CREATE INDEX files_updated_idx ON files USING btree (updated);
 
 
 --
@@ -172,6 +251,13 @@ CREATE INDEX utterancies_shared_idx ON utterancies USING btree (shared);
 --
 
 CREATE INDEX utterancies_updated_idx ON utterancies USING btree (updated);
+
+
+--
+-- Name: t_data; Type: TRIGGER; Schema: public; Owner: transkribator
+--
+
+CREATE TRIGGER t_data BEFORE DELETE OR UPDATE ON files FOR EACH ROW EXECUTE PROCEDURE lo_manage('data');
 
 
 --
