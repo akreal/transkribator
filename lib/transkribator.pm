@@ -251,7 +251,7 @@ post '/transcriptions/update' => sub {
 
 get '/transcriptions/:utt' => sub {
 	my $utt = param('utt');
-	my $transcription = database->quick_select('utterancies', { 'id' => $utt }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated']);
+	my $transcription = database->quick_select('utterancies', { 'id' => $utt }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile', 'cdatafile']);
 
 	if (! $transcription) {
 		send_error('This transcription doesn\'t exist', 404);
@@ -263,17 +263,52 @@ get '/transcriptions/:utt' => sub {
 	my $type = param('type') || '';
 
 	if ($type eq 'audio') {
-		my $audio = database->quick_lookup('utterancies', { 'id' => $utt }, 'cdata');
-		return send_file(\$audio, 'content_type' => 'audio/x-wav', 'filename' => "$utt.wav");
+		my $loid = database->quick_lookup('files', { 'id' => $transcription->{'cdatafile'} }, 'data');
+
+		return delayed {
+			header 'Content-Type' => 'audio/x-wav';
+			header 'Content-Disposition' => "attachment; filename=\"$utt.wav\"";
+
+			flush;
+
+			database->{'AutoCommit'} = 0;
+
+			my $buffer = '';
+			my $fd = database->pg_lo_open($loid, database->{'pg_INV_READ'});
+
+			while (database->pg_lo_read($fd, $buffer, 1024)) {
+				content $buffer;
+			}
+
+			done;
+		};
 	}
 	elsif ($type eq 'json') {
 		my $transkription = database->quick_select('transcriptions', { 'utterance' => $utt }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
 		return to_json($transkription->{'transcription'});
 	}
 	elsif ($type eq 'file') {
-		my $mm = File::MMagic->new;
-		my $file = database->quick_lookup('utterancies', { 'id' => $utt }, 'data');
-		return send_file(\$file, 'content_type' => $mm->checktype_contents($file), 'filename' => $transcription->{'filename'});
+		my $file = database->quick_select('files', { 'id' => $transcription->{'datafile'} }, ['data', 'properties']);
+		my $loid = $file->{'data'};
+		my $properties = from_json($file->{'properties'});
+
+		return delayed {
+			header 'Content-Type' => $properties->{'content_type'};
+			header 'Content-Disposition' => "attachment; filename=\"$transcription->{'filename'}\"";
+
+			flush;
+
+			database->{'AutoCommit'} = 0;
+
+			my $buffer = '';
+			my $fd = database->pg_lo_open($loid, database->{'pg_INV_READ'});
+
+			while (database->pg_lo_read($fd, $buffer, 1024)) {
+				content $buffer;
+			}
+
+			done;
+		};
 	}
 
 	my $editable = session('username') && session('userid') eq $transcription->{'owner'};
@@ -291,23 +326,42 @@ post '/utterance/upload' => sub {
 	my $ug = Data::UUID->new;
 	my $utt = $ug->create_str();
 
-	my $file = upload('file');
-	my $filename = $file->filename;
-	my $data = $file->content;
+	my $upload = upload('file');
+	my $filename = $upload->filename;
 
 	my $owner = session('userid');
 
-	my $tempname = $file->tempname;
-	tutils::convert($tempname, "$tempname.wav");
-	my $cdata = read_file("$tempname.wav");
+	my $files = { 'original' => { 'path' => $upload->tempname }, 'converted' => { 'path' => $upload->tempname . '.wav' } };
+	tutils::convert($files->{'original'}->{'path'}, $files->{'converted'}->{'path'});
 
-	my $sth = database->prepare('INSERT INTO utterancies(id, owner, filename, data, cdata) VALUES(?,?,?,?,?)');
-	$sth->bind_param(4, undef, { pg_type => PG_BYTEA });
-	$sth->bind_param(5, undef, { pg_type => PG_BYTEA });
-	$sth->execute($utt, $owner, $filename, $data, $cdata);
+	my $mm = File::MMagic->new;
 
-	my $transcription = tutils::transkript("$tempname.wav");
+	foreach my $key (keys %$files) {
+		my $path = $files->{$key}->{'path'};
+
+		database->quick_insert('files', {
+										'data'			=> database->pg_lo_import($path),
+										'properties'	=> to_json({ 'content_type' => $mm->checktype_filename($path) }),
+										}
+		);
+
+		$files->{$key}->{'id'} = database->last_insert_id(undef, undef, 'files', undef);
+	}
+
+	database->quick_insert('utterancies', {
+										'id'		=> $utt,
+										'owner'		=> $owner,
+										'filename'	=> $filename,
+										'datafile'	=> $files->{'original'}->{'id'},
+										'cdatafile'	=> $files->{'converted'}->{'id'},
+										}
+	);
+
+	my $transcription = tutils::transkript($files->{'converted'}->{'path'});
+
 	database->quick_insert('transcriptions', { 'utterance' => $utt, 'transcription' => $transcription });
+
+	unlink($_->{'path'}) foreach values %$files;
 
 	return to_json({ 'utt' => $utt, 'filename' => $filename });
 };
