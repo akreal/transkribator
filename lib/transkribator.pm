@@ -263,52 +263,14 @@ get '/transcriptions/:utt' => sub {
 	my $type = param('type') || '';
 
 	if ($type eq 'audio') {
-		my $loid = database->quick_lookup('files', { 'id' => $transcription->{'cdatafile'} }, 'data');
-
-		return delayed {
-			header 'Content-Type' => 'audio/x-wav';
-			header 'Content-Disposition' => "attachment; filename=\"$utt.wav\"";
-
-			flush;
-
-			database->{'AutoCommit'} = 0;
-
-			my $buffer = '';
-			my $fd = database->pg_lo_open($loid, database->{'pg_INV_READ'});
-
-			while (database->pg_lo_read($fd, $buffer, 1024)) {
-				content $buffer;
-			}
-
-			done;
-		};
+		return serve_file($transcription->{'cdatafile'}, "$utt.wav");
 	}
 	elsif ($type eq 'json') {
 		my $transkription = database->quick_select('transcriptions', { 'utterance' => $utt }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
 		return to_json($transkription->{'transcription'});
 	}
 	elsif ($type eq 'file') {
-		my $file = database->quick_select('files', { 'id' => $transcription->{'datafile'} }, ['data', 'properties']);
-		my $loid = $file->{'data'};
-		my $properties = from_json($file->{'properties'});
-
-		return delayed {
-			header 'Content-Type' => $properties->{'content_type'};
-			header 'Content-Disposition' => "attachment; filename=\"$transcription->{'filename'}\"";
-
-			flush;
-
-			database->{'AutoCommit'} = 0;
-
-			my $buffer = '';
-			my $fd = database->pg_lo_open($loid, database->{'pg_INV_READ'});
-
-			while (database->pg_lo_read($fd, $buffer, 1024)) {
-				content $buffer;
-			}
-
-			done;
-		};
+		return serve_file($transcription->{'datafile'}, $transcription->{'filename'});
 	}
 
 	my $editable = session('username') && session('userid') eq $transcription->{'owner'};
@@ -387,5 +349,33 @@ any '/phones' => sub {
 
 	return template 'phones' => { 'title' => 'Phones' };
 };
+
+sub serve_file {
+	my ($id, $filename) = @_;
+
+	my $file = database->quick_select('files', { 'id' => $id }, ['data', 'properties']);
+	my $loid = $file->{'data'};
+	my $properties = from_json($file->{'properties'});
+
+	return delayed {
+		header 'Content-Type' => $properties->{'content_type'};
+		header 'Content-Disposition' => "attachment; filename=\"$filename\"";
+
+		flush;
+
+		database->{'AutoCommit'} = 0;
+
+		my $buffer = '';
+		my $fd = database->pg_lo_open($loid, database->{'pg_INV_READ'});
+
+		while (database->pg_lo_read($fd, $buffer, 1024)) {
+			content $buffer;
+		}
+
+		done;
+
+		database->{'AutoCommit'} = 1;
+	};
+}
 
 dance;
