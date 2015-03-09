@@ -244,9 +244,7 @@ post '/transcriptions/update' => sub {
 		database->quick_insert('transcriptions', { 'utterance' => $utt, 'author' => $owner, 'transcription' => from_json($transkription) });
 	}
 	
-	my $transcription = database->quick_select('utterancies', { 'id' => $utt }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated']);
-
-	return template 'transcription' => { 'title' => 'Transcription', 'transcription' => $transcription, 'success' => 'Transcription is saved', 'editable' => 1};
+	redirect("/transcriptions/$utt");
 };
 
 get '/transcriptions/:utt' => sub {
@@ -303,7 +301,7 @@ post '/utterance/upload' => sub {
 		return to_json({ 'utt' => undef, 'error' => 'You need to be logged in' });
 	}
 
-	my $utt = Data::UUID->new->create_str;
+	my $utt = lc(Data::UUID->new->create_str);
 
 	my $owner = session('userid');
 	my $upload = upload('file');
