@@ -3,42 +3,64 @@
 // Create an instance
 var wavesurfer = Object.create(WaveSurfer);
 
-// Init & load audio file
-document.addEventListener('DOMContentLoaded', function () {
-    var options = {
-        container     : document.querySelector('#waveform'),
-        waveColor     : 'violet',
-        progressColor : 'purple',
-        loaderColor   : 'purple',
-        cursorColor   : '#b5b5b5',
-        markerWidth   : 1,
-        minPxPerSec   : 400,
-        scrollParent  : true,
-		normalize     : true,
-    };
+function checkProgress() {
+	var xhr = new XMLHttpRequest();
+	xhr.overrideMimeType('application/json');
+	xhr.open('GET', '/transcriptions/' + utt.value + '?type=progress', true);
+	xhr.send();
 
-    /* Progress bar */
-    var progressDiv = document.querySelector('#progress-bar');
-    var progressBar = progressDiv.querySelector('.progress-bar');
-    wavesurfer.on('loading', function (percent, xhr) {
-        progressDiv.style.display = 'block';
-        progressBar.style.width = percent + '%';
-    });
-    wavesurfer.on('ready', function () {
-        progressDiv.style.display = 'none';
-    });
-    wavesurfer.on('destroy', function () {
-        progressDiv.style.display = 'none';
-    });
+	xhr.addEventListener('load', function (e) {
+		if (200 == xhr.status) {
+			var percent = JSON.parse(xhr.responseText)['percent'];
+			if (percent == 100) {
+				// Init & load audio file
 
-    // Init
-    wavesurfer.init(options);
+			    var options = {
+			        container     : document.querySelector('#waveform'),
+			        waveColor     : 'violet',
+			        progressColor : 'purple',
+			        loaderColor   : 'purple',
+			        cursorColor   : '#b5b5b5',
+			        markerWidth   : 1,
+			        minPxPerSec   : 400,
+			        scrollParent  : true,
+					normalize     : true,
+			    };
 
-	document.querySelector('wave').style['overflowX'] = 'hidden';
+				document.querySelector('#transkribing-progress-bar').style.display = 'none';
+				options.container.style.display = 'block';
 
-    // Load audio from URL
-	wavesurfer.load('/transcriptions/' + utt.value + '?type=audio');
-});
+			    /* Progress bar */
+			    var progressDiv = document.querySelector('#progress-bar');
+			    var progressBar = progressDiv.querySelector('.progress-bar');
+			    wavesurfer.on('loading', function (percent, xhr) {
+			        progressDiv.style.display = 'block';
+			        progressBar.style.width = percent + '%';
+			    });
+			    wavesurfer.on('ready', function () {
+			        progressDiv.style.display = 'none';
+			    });
+			    wavesurfer.on('destroy', function () {
+			        progressDiv.style.display = 'none';
+			    });
+
+			    // Init
+			    wavesurfer.init(options);
+
+				document.querySelector('wave').style['overflowX'] = 'hidden';
+
+			    // Load audio from URL
+				wavesurfer.load('/transcriptions/' + utt.value + '?type=audio');
+			}
+			else {
+				document.querySelector('#transkribing-progress-bar').innerText = 'Transcribing is about ' + percent + '% done...';
+				setTimeout(checkProgress, 3000);
+			}
+		}
+	});
+}
+
+document.addEventListener('DOMContentLoaded', checkProgress);
 
 var drops = new Array();
 
@@ -97,7 +119,7 @@ function exitCandidates() {
 }
 
 // Bind buttons and keypresses
-(function () {
+function createListeners () {
     var eventHandlers = {
         'play': function () {
             wavesurfer.playPause();
@@ -338,7 +360,7 @@ function exitCandidates() {
             eventHandlers[action](e);
         }
     });
-}());
+}
 
 wavesurfer.on('error', function (err) {
     console.error(err);
@@ -462,6 +484,8 @@ wavesurfer.on('ready', function () {
 
 	xhr.addEventListener('load', function (e) {
 		if (200 == xhr.status) {
+			createListeners();
+
 			transkription = new can.List(JSON.parse(xhr.responseText));
 
 			var phonemStart = 0;

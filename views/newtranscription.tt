@@ -58,7 +58,7 @@ $(function () {
         done: function (e, data) {
 			$('#progress').css('display', 'none');
             $('#progress .progress-bar').css('width', '0%');
-			$('#fileupload-success-message')[0].innerHTML = data.result.filename + ' is uploaded and transcribed';
+			$('#fileupload-success-message')[0].innerHTML = data.result.filename + ' is uploaded';
 			$('#fileupload-success-message').css('display', 'block');
 			$('#utt')[0].value = data.result.utt;
         },
@@ -70,7 +70,7 @@ $(function () {
             );
 
 			if (progress == 100) {
-				$('#progress .progress-bar').text('Transcribing, please wait...');
+				$('#progress .progress-bar').text('Finishing, please wait...');
 			}
         }
     }).prop('disabled', !$.support.fileInput)

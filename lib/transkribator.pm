@@ -8,9 +8,9 @@ use Dancer2::Plugin::Database;
 use Authen::Passphrase::BlowfishCrypt;
 use Data::UUID;
 use File::Slurp;
-use DBD::Pg;
 use File::MMagic;
-use tutils;
+use Gearman::XS qw(:constants);
+use Gearman::XS::Client;
 
 our $VERSION = '0.1';
 
@@ -267,10 +267,28 @@ get '/transcriptions/:utt' => sub {
 	}
 	elsif ($type eq 'json') {
 		my $transkription = database->quick_select('transcriptions', { 'utterance' => $utt }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
+
+		if (! $transkription) {
+			send_error('This transcription doesn\'t exist', 404);
+		}
+
 		return to_json($transkription->{'transcription'});
 	}
 	elsif ($type eq 'file') {
 		return serve_file($transcription->{'datafile'}, $transcription->{'filename'});
+	}
+	elsif ($type eq 'progress') {
+		my $percent = 0;
+
+		if ($transcription->{'cdatafile'}) {
+			$percent += 20;
+
+			if ( database->quick_lookup('transcriptions', { 'utterance' => $utt }, 'created') ) {
+				$percent += 80;
+			}
+		}
+
+		return to_json({ 'percent' => $percent });
 	}
 
 	my $editable = session('username') && session('userid') eq $transcription->{'owner'};
@@ -285,45 +303,34 @@ post '/utterance/upload' => sub {
 		return to_json({ 'utt' => undef, 'error' => 'You need to be logged in' });
 	}
 
-	my $ug = Data::UUID->new;
-	my $utt = $ug->create_str();
-
-	my $upload = upload('file');
-	my $filename = $upload->filename;
+	my $utt = Data::UUID->new->create_str;
 
 	my $owner = session('userid');
+	my $upload = upload('file');
+	my $filename = $upload->filename;
+	my $tempname = $upload->tempname;
 
-	my $files = { 'original' => { 'path' => $upload->tempname }, 'converted' => { 'path' => $upload->tempname . '.wav' } };
-	tutils::convert($files->{'original'}->{'path'}, $files->{'converted'}->{'path'});
-
-	my $mm = File::MMagic->new;
-
-	foreach my $key (keys %$files) {
-		my $path = $files->{$key}->{'path'};
-
-		database->quick_insert('files', {
-										'data'			=> database->pg_lo_import($path),
-										'properties'	=> to_json({ 'content_type' => $mm->checktype_filename($path) }),
-										}
-		);
-
-		$files->{$key}->{'id'} = database->last_insert_id(undef, undef, 'files', undef);
+	my $gearman = Gearman::XS::Client->new;
+	my $ret = $gearman->add_server( @{config->{'plugins'}->{'GearmanXS'}}{'host', 'port'} );
+	if ($ret != GEARMAN_SUCCESS) {
+		send_error('Can not accept the upload', 500);
 	}
 
-	database->quick_insert('utterancies', {
-										'id'		=> $utt,
-										'owner'		=> $owner,
-										'filename'	=> $filename,
-										'datafile'	=> $files->{'original'}->{'id'},
-										'cdatafile'	=> $files->{'converted'}->{'id'},
-										}
+	database->quick_insert('files', {
+									'data'		=> database->pg_lo_import($tempname),
+									'properties'=> to_json({ 'content_type' => File::MMagic->new->checktype_filename($tempname) }),
+								}
 	);
 
-	my $transcription = tutils::transkript($files->{'converted'}->{'path'});
+	database->quick_insert('utterancies', {
+											'id'		=> $utt,
+											'owner'		=> $owner,
+											'filename'	=> $filename,
+											'datafile'	=> database->last_insert_id(undef, undef, 'files', undef),
+											}
+	);
 
-	database->quick_insert('transcriptions', { 'utterance' => $utt, 'transcription' => $transcription });
-
-	unlink($_->{'path'}) foreach values %$files;
+	$gearman->do_background('convert', $utt);
 
 	return to_json({ 'utt' => $utt, 'filename' => $filename });
 };
@@ -354,6 +361,11 @@ sub serve_file {
 	my ($id, $filename) = @_;
 
 	my $file = database->quick_select('files', { 'id' => $id }, ['data', 'properties']);
+
+	if (! $file) {
+		send_error('This file does not exist', 404);
+	}
+
 	my $loid = $file->{'data'};
 	my $properties = from_json($file->{'properties'});
 

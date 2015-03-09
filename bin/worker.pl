@@ -1,27 +1,99 @@
-package tutils;
+#!/usr/bin/env perl
 
 use strict;
 use warnings;
 
-use Capture::Tiny 'capture_stderr';
-use Carp;
+use Gearman::XS qw(:constants);
+use Gearman::XS::Worker;
+use Gearman::XS::Client;
+
 use File::Slurp;
 use File::Temp 'tempdir';
+use File::Path 'rmtree';
+use Capture::Tiny 'capture_stderr';
+
+use Dancer2;
+use Dancer2::Plugin::Database;
 
 my $model = $ENV{'KALDIMODEL'};
 my $beam = 10.0;
 my $acoustic_scale = 0.083;
 my $lattice_beam = 6.0;
 
+my $gearman = config()->{'plugins'}->{'GearmanXS'};
+
+my $worker = Gearman::XS::Worker->new();
+
+my $ret = $worker->add_server( @{$gearman}{'host', 'port'} );
+
+if ($ret != GEARMAN_SUCCESS) {
+	error($worker->error());
+	exit(1);
+}
+
+$ret = $worker->add_function('convert', 0, \&convert, {});
+if ($ret != GEARMAN_SUCCESS) {
+	error($worker->error());
+}
+
+$ret = $worker->add_function('transkript', 0, \&transkript, {});
+if ($ret != GEARMAN_SUCCESS) {
+	error($worker->error());
+}
+
+my $client = Gearman::XS::Client->new();
+$ret = $client->add_server( @{$gearman}{'host', 'port'} );
+if ($ret != GEARMAN_SUCCESS) {
+	error('Client died with error:' . $client->error());
+	exit(1);
+}
+
+while (1) {
+	my $ret = $worker->work();
+	if ($ret != GEARMAN_SUCCESS) {
+		error('Worker died with error:' . $worker->error());
+		exit(1);
+	}
+}
+
 sub convert {
-	my ($in, $out) = @_;
-	cmd("sox \"$in\" -r16k \"$out\"");
+	my $job = shift;
+
+	my $utt = $job->workload();
+
+	my $meta = database->quick_select('utterancies', { 'id' => $utt }, ['datafile', 'filename']);
+
+	my $tmpdir = tempdir();
+
+	my $path = "$tmpdir/$meta->{'filename'}";
+	my $cpath = "$path.wav";
+
+	export($meta->{'datafile'}, $path);
+
+	cmd("sox \"$path\" -r16k \"$cpath\"");
+
+	database->quick_insert('files', {
+										'data'			=> database->pg_lo_import($cpath),
+										'properties'	=> '{"content_type":"audio/x-wav"}',
+									}
+	);
+
+	database->quick_update('utterancies', { 'id' => $utt },
+			{ 'cdatafile' => database->last_insert_id(undef, undef, 'files', undef) }
+	);
+
+	$client->do_background('transkript', $utt);
 }
 
 sub transkript {
-	my $file = shift;
+	my $job = shift;
 
-	my $tmpdir = tempdir(CLEANUP => 1);
+	my $utt = $job->workload();
+
+	my $tmpdir = tempdir();
+
+	my $file = "$tmpdir/file.wav";
+	export(database->quick_lookup('utterancies', { 'id' => $utt }, 'cdatafile'), $file);
 
 	write_file("$tmpdir/wav.scp", "utt $file\n");
 	write_file("$tmpdir/utt2spk", "utt anonymous\n");
@@ -48,13 +120,22 @@ sub transkript {
 		"\"ark:|gzip -c > $tmpdir/lat.tmp.gz\" ark,t:$tmpdir/tra.tra ark:- | ".
 		"ali-to-phones --write-lengths=true $model/final.mdl ark:- ark,t:$tmpdir/utt.tra");
 
-	return [ map { [ map {$_ + 0} split(' ', $_)  ] } split(' ; ', substr(read_file("$tmpdir/utt.tra"), 4)) ];
+	my $transcription = [ map { [ map {$_ + 0} split(' ', $_)  ] } split(' ; ', substr(read_file("$tmpdir/utt.tra"), 4)) ];
+
+	database->quick_insert('transcriptions', { 'utterance' => $utt, 'transcription' => $transcription });
+
+	rmtree($tmpdir);
+}
+
+sub export {
+	my ($id, $path) = @_;
+	my $loid = database->quick_lookup('files', { 'id' => $id }, 'data');
+	database->pg_lo_export($loid, $path);
 }
 
 sub cmd {
 	my $cmd = shift;
 	my ($stderr, $exit) = capture_stderr { system('/bin/bash', '-c', $cmd) };
-	croak "Non-zero status $exit for\n$cmd\n$stderr\n" if $exit != 0;
+	error("Non-zero status $exit for\n$cmd\n$stderr\n") if $exit != 0;
 }
 
-1;

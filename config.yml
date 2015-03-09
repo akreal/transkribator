@@ -32,4 +32,7 @@ plugins:
         dbi_params:
             RaiseError: 1
             AutoCommit: 1
+    GearmanXS:
+        host: 'localhost'
+        port: '4730'
 
