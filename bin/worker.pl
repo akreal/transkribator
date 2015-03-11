@@ -59,9 +59,9 @@ while (1) {
 sub convert {
 	my $job = shift;
 
-	my $utt = $job->workload();
+	my $id = $job->workload();
 
-	my $meta = database->quick_select('utterancies', { 'id' => $utt }, ['datafile', 'filename']);
+	my $meta = database->quick_select('recordings', { 'id' => $id }, ['datafile', 'filename']);
 
 	my $tmpdir = tempdir();
 
@@ -78,22 +78,22 @@ sub convert {
 									}
 	);
 
-	database->quick_update('utterancies', { 'id' => $utt },
+	database->quick_update('recordings', { 'id' => $id },
 			{ 'cdatafile' => database->last_insert_id(undef, undef, 'files', undef) }
 	);
 
-	$client->do_background('transkript', $utt);
+	$client->do_background('transkript', $id);
 }
 
 sub transkript {
 	my $job = shift;
 
-	my $utt = $job->workload();
+	my $id = $job->workload();
 
 	my $tmpdir = tempdir();
 
 	my $file = "$tmpdir/file.wav";
-	export(database->quick_lookup('utterancies', { 'id' => $utt }, 'cdatafile'), $file);
+	export(database->quick_lookup('recordings', { 'id' => $id }, 'cdatafile'), $file);
 
 	write_file("$tmpdir/wav.scp", "utt $file\n");
 	write_file("$tmpdir/utt2spk", "utt anonymous\n");
@@ -122,7 +122,7 @@ sub transkript {
 
 	my $transcription = [ map { [ map {$_ + 0} split(' ', $_)  ] } split(' ; ', substr(read_file("$tmpdir/utt.tra"), 4)) ];
 
-	database->quick_insert('transcriptions', { 'utterance' => $utt, 'transcription' => $transcription });
+	database->quick_insert('transcriptions', { 'utterance' => $id, 'transcription' => $transcription });
 
 	rmtree($tmpdir);
 }

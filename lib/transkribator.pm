@@ -205,7 +205,7 @@ get '/transcriptions/list/:zone' => sub {
 	}
 
 	my @transcriptions = database->quick_select(
-							'utterancies',
+							'recordings',
 							( $zone eq 'my' ? { 'owner' => session 'userid' } : { 'shared' => 'true' } ),
 							{ columns => ['id', 'title', 'filename', 'description', 'updated'], order_by => { desc => 'updated' } }
 							);
@@ -230,26 +230,26 @@ post '/transcriptions/update' => sub {
 		return template 'needlogin' => { title => 'Transcription' };
 	}
 
-	my ($utt, $title, $description, $transkription) = map { param($_) eq '' ? undef : param($_) } ('utt', 'title', 'description', 'transkription');
+	my ($id, $title, $description, $transkription) = map { param($_) eq '' ? undef : param($_) } ('utt', 'title', 'description', 'transkription');
 	
-	my $owner = database->quick_lookup('utterancies', { 'id' => $utt }, 'owner');
+	my $owner = database->quick_lookup('recordings', { 'id' => $id }, 'owner');
 
 	if (session('userid') ne $owner) {
 		send_error('You are not allowed to edit this transcription', 403);
 	}
 
-	database->quick_update('utterancies', { 'id' => $utt }, { 'title' => $title, 'description' => $description, 'updated' => 'now()', shared => param('shared') || 'f' });
+	database->quick_update('recordings', { 'id' => $id }, { 'title' => $title, 'description' => $description, 'updated' => 'now()', shared => param('shared') || 'f' });
 
 	if ($transkription) {
-		database->quick_insert('transcriptions', { 'utterance' => $utt, 'author' => $owner, 'transcription' => from_json($transkription) });
+		database->quick_insert('transcriptions', { 'utterance' => $id, 'author' => $owner, 'transcription' => from_json($transkription) });
 	}
 	
-	redirect("/transcriptions/$utt");
+	redirect("/transcriptions/$id");
 };
 
 get '/transcriptions/:utt' => sub {
-	my $utt = param('utt');
-	my $transcription = database->quick_select('utterancies', { 'id' => $utt }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile', 'cdatafile']);
+	my $id = param('utt');
+	my $transcription = database->quick_select('recordings', { 'id' => $id }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile', 'cdatafile']);
 
 	if (! $transcription) {
 		send_error('This transcription doesn\'t exist', 404);
@@ -261,10 +261,10 @@ get '/transcriptions/:utt' => sub {
 	my $type = param('type') || '';
 
 	if ($type eq 'audio') {
-		return serve_file($transcription->{'cdatafile'}, "$utt.wav");
+		return serve_file($transcription->{'cdatafile'}, "$id.wav");
 	}
 	elsif ($type eq 'json') {
-		my $transkription = database->quick_select('transcriptions', { 'utterance' => $utt }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
+		my $transkription = database->quick_select('transcriptions', { 'utterance' => $id }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
 
 		if (! $transkription) {
 			send_error('This transcription doesn\'t exist', 404);
@@ -281,7 +281,7 @@ get '/transcriptions/:utt' => sub {
 		if ($transcription->{'cdatafile'}) {
 			$percent += 20;
 
-			if ( database->quick_lookup('transcriptions', { 'utterance' => $utt }, 'created') ) {
+			if ( database->quick_lookup('transcriptions', { 'utterance' => $id }, 'created') ) {
 				$percent += 80;
 			}
 		}
@@ -301,7 +301,7 @@ post '/utterance/upload' => sub {
 		return to_json({ 'utt' => undef, 'error' => 'You need to be logged in' });
 	}
 
-	my $utt = lc(Data::UUID->new->create_str);
+	my $id = lc(Data::UUID->new->create_str);
 
 	my $owner = session('userid');
 	my $upload = upload('file');
@@ -320,17 +320,17 @@ post '/utterance/upload' => sub {
 								}
 	);
 
-	database->quick_insert('utterancies', {
-											'id'		=> $utt,
+	database->quick_insert('recordings', {
+											'id'		=> $id,
 											'owner'		=> $owner,
 											'filename'	=> $filename,
 											'datafile'	=> database->last_insert_id(undef, undef, 'files', undef),
 											}
 	);
 
-	$gearman->do_background('convert', $utt);
+	$gearman->do_background('convert', $id);
 
-	return to_json({ 'utt' => $utt, 'filename' => $filename });
+	return to_json({ 'utt' => $id, 'filename' => $filename });
 };
 
 get '/admin' => sub {
