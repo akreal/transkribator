@@ -83,6 +83,8 @@ sub convert {
 	);
 
 	$client->do_background('transkript', $id);
+
+	rmtree($tmpdir);
 }
 
 sub transkript {
