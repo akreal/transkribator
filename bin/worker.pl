@@ -10,7 +10,7 @@ use Gearman::XS::Client;
 use File::Slurp;
 use File::Temp 'tempdir';
 use File::Path 'rmtree';
-use Capture::Tiny 'capture_stderr';
+use Capture::Tiny 'capture';
 
 use Dancer2;
 use Dancer2::Plugin::Database;
@@ -137,7 +137,7 @@ sub export {
 
 sub cmd {
 	my $cmd = shift;
-	my ($stderr, $exit) = capture_stderr { system('/bin/bash', '-c', $cmd) };
+	my ($stdout, $stderr, $exit) = capture { system('/bin/bash', '-c', $cmd) };
 	error("Non-zero status $exit for\n$cmd\n$stderr\n") if $exit != 0;
 }
 
