@@ -104,10 +104,10 @@ ALTER TABLE recordings OWNER TO transkribator;
 --
 
 CREATE TABLE transcriptions (
-    utterance uuid NOT NULL,
+    utterance integer NOT NULL,
     created timestamp without time zone DEFAULT now() NOT NULL,
     author integer DEFAULT 0 NOT NULL,
-    transcription integer[] NOT NULL
+    transcription smallint[] NOT NULL
 );
 
 
@@ -151,6 +151,43 @@ ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 
 --
+-- Name: utterancies; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+CREATE TABLE utterancies (
+    id integer NOT NULL,
+    recording uuid NOT NULL,
+    start integer NOT NULL,
+    duration smallint NOT NULL,
+    speaker text NOT NULL,
+    datafile integer
+);
+
+
+ALTER TABLE utterancies OWNER TO transkribator;
+
+--
+-- Name: utterancies_id_seq; Type: SEQUENCE; Schema: public; Owner: transkribator
+--
+
+CREATE SEQUENCE utterancies_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE utterancies_id_seq OWNER TO transkribator;
+
+--
+-- Name: utterancies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: transkribator
+--
+
+ALTER SEQUENCE utterancies_id_seq OWNED BY utterancies.id;
+
+
+--
 -- Name: id; Type: DEFAULT; Schema: public; Owner: transkribator
 --
 
@@ -162,6 +199,13 @@ ALTER TABLE ONLY files ALTER COLUMN id SET DEFAULT nextval('files_id_seq'::regcl
 --
 
 ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: transkribator
+--
+
+ALTER TABLE ONLY utterancies ALTER COLUMN id SET DEFAULT nextval('utterancies_id_seq'::regclass);
 
 
 --
@@ -197,10 +241,11 @@ ALTER TABLE ONLY users
 
 
 --
--- Name: files_created_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: utterancies_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
 --
 
-CREATE INDEX files_created_idx ON files USING btree (created);
+ALTER TABLE ONLY utterancies
+    ADD CONSTRAINT utterancies_pkey PRIMARY KEY (id);
 
 
 --
@@ -243,6 +288,13 @@ CREATE UNIQUE INDEX users_lower_idx ON users USING btree (lower(email));
 --
 
 CREATE UNIQUE INDEX users_username_idx ON users USING btree (username);
+
+
+--
+-- Name: utterancies_recording_ix; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+CREATE INDEX utterancies_recording_ix ON utterancies USING btree (recording);
 
 
 --
