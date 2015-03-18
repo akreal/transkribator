@@ -49,6 +49,11 @@ if ($ret != GEARMAN_SUCCESS) {
 	error($worker->error());
 }
 
+$ret = $worker->add_function('segmentate', 0, \&segmentate, {});
+if ($ret != GEARMAN_SUCCESS) {
+	error($worker->error());
+}
+
 my $client = Gearman::XS::Client->new();
 $ret = $client->add_server( @{$gearman}{'host', 'port'} );
 if ($ret != GEARMAN_SUCCESS) {
@@ -90,7 +95,7 @@ sub convert {
 			{ 'cdatafile' => database->last_insert_id(undef, undef, 'files', undef) }
 	);
 
-	$client->do_background('transkript', $id);
+	$client->do_background('segmentate', $id);
 
 	rmtree($tmpdir);
 }
@@ -215,6 +220,8 @@ sub segmentate {
 											'datafile'	=> database->last_insert_id(undef, undef, 'files', undef)
 											}
 		);
+
+		$client->do_background('transkript', database->last_insert_id(undef, undef, 'utterancies', undef));
 	}
 
 	close SEGMENTS;
@@ -230,7 +237,7 @@ sub transkript {
 	my $tmpdir = tempdir();
 
 	my $file = "$tmpdir/file.wav";
-	export(database->quick_lookup('recordings', { 'id' => $id }, 'cdatafile'), $file);
+	export(database->quick_lookup('utterancies', { 'id' => $id }, 'datafile'), $file);
 
 	write_file("$tmpdir/wav.scp", "utt $file\n");
 	write_file("$tmpdir/utt2spk", "utt anonymous\n");
