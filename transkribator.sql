@@ -298,6 +298,13 @@ CREATE INDEX utterancies_recording_ix ON utterancies USING btree (recording);
 
 
 --
+-- Name: utterancies_start_ix; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+--
+
+CREATE INDEX utterancies_start_ix ON utterancies USING btree (start);
+
+
+--
 -- Name: t_data; Type: TRIGGER; Schema: public; Owner: transkribator
 --
 
