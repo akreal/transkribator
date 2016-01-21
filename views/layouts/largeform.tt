@@ -13,8 +13,5 @@
 
 </div> <!-- /container -->
 
-<script src="[% request.uri_base %]/javascripts/jquery-2.1.1.min.js"></script>
-<script src="[% request.uri_base %]/bootstrap/js/bootstrap.min.js"></script>
-
 </body>
 </html>

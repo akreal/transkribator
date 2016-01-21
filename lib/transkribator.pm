@@ -230,7 +230,7 @@ post '/transcriptions/update' => sub {
 		return template 'needlogin' => { title => 'Transcription' };
 	}
 
-	my ($id, $title, $description, $transkription) = map { param($_) eq '' ? undef : param($_) } ('utt', 'title', 'description', 'transkription');
+	my ($id, $title, $description, $transkriptions) = map { param($_) eq '' ? undef : param($_) } ('id', 'title', 'description', 'transkriptions');
 	
 	my $owner = database->quick_lookup('recordings', { 'id' => $id }, 'owner');
 
@@ -240,15 +240,23 @@ post '/transcriptions/update' => sub {
 
 	database->quick_update('recordings', { 'id' => $id }, { 'title' => $title, 'description' => $description, 'updated' => 'now()', shared => param('shared') || 'f' });
 
-	if ($transkription) {
-		database->quick_insert('transcriptions', { 'utterance' => $id, 'author' => $owner, 'transcription' => from_json($transkription) });
+	my $t = eval { from_json($transkriptions) };
+	if (ref $t eq 'ARRAY') {
+		foreach my $segment (0 .. $#$t) {
+			if (ref $t->[$segment] eq 'ARRAY') {
+				database->quick_insert('transcriptions',
+					{ 'utterance' => $segment, 'author' => $owner, 'transcription' => $t->[$segment] });
+			}
+		}
 	}
 	
 	redirect("/transcriptions/$id");
 };
 
-get '/transcriptions/:utt' => sub {
-	my $id = param('utt');
+get '/transcriptions/:id' => sub {
+	session();
+
+	my $id = param('id');
 	my $transcription = database->quick_select('recordings', { 'id' => $id }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile', 'cdatafile']);
 
 	if (! $transcription) {
@@ -259,23 +267,50 @@ get '/transcriptions/:utt' => sub {
 	}
 
 	my $type = param('type') || '';
+	my $segment = param('segment');
 
 	if ($type eq 'audio') {
-		return serve_file($transcription->{'cdatafile'}, "$id.wav");
+		if ($segment) {
+			return serve_file(
+					database->quick_lookup('utterancies', {'id' => $segment, 'recording' => $id }, 'datafile'),
+					"${id}-${segment}.wav"
+			);
+		}
+		else {
+			return serve_file($transcription->{'cdatafile'}, "$id.wav");
+		}
 	}
-	elsif ($type eq 'json') {
-		my $transkription = database->quick_select('transcriptions', { 'utterance' => $id }, { columns => ['transcription'], 'order_by' => { desc => 'created' } });
+	elsif ($type eq 'segments') {
+		my @segments = database->quick_select('utterancies', { 'recording' => $id }, {
+											'columns'	=> [ 'id', 'start', 'duration', 'speaker' ],
+											'order_by'	=> { 'asc' => 'start' }
+		});
 
-		if (! $transkription) {
+		if (! @segments) {
 			send_error('This transcription doesn\'t exist', 404);
 		}
 
-		return to_json($transkription->{'transcription'});
+		return to_json(\@segments);
+	}
+	elsif ($type eq 'transkription') {
+		if ($segment) {
+			my $transkription = database->quick_select('transcriptions', { 'utterance' => $segment }, {
+												'columns'	=> [ 'transcription' ],
+												'order_by'	=> { 'desc' => 'created' }
+			});
+
+			if (! $transkription) {
+				send_error('This transcription doesn\'t exist', 404);
+			}
+
+			return to_json($transkription->{'transcription'});
+		}
 	}
 	elsif ($type eq 'file') {
 		return serve_file($transcription->{'datafile'}, $transcription->{'filename'});
 	}
 	elsif ($type eq 'progress') {
+		return to_json({ 'percent' => 100 });
 		my $percent = 0;
 
 		if ($transcription->{'cdatafile'}) {
@@ -291,14 +326,22 @@ get '/transcriptions/:utt' => sub {
 
 	my $editable = session('username') && session('userid') eq $transcription->{'owner'};
 
-	return template 'transcription' => { 'title' => 'Transcription', 'transcription' => $transcription, 'editable' => $editable };
+	if ($segment) {
+		return template
+			'utterance' => { 'title' => 'Utterance', 'recording' => $id, 'segment' => $segment, 'editable' => $editable },
+			{ layout => 'utterance' };
+	}
+	else {
+		return template
+			'transcription' => { 'title' => 'Transcription', 'transcription' => $transcription, 'editable' => $editable };
+	}
 };
 
 post '/utterance/upload' => sub {
 	my $username = session('username');
 
 	if (! $username) {
-		return to_json({ 'utt' => undef, 'error' => 'You need to be logged in' });
+		return to_json({ 'id' => undef, 'error' => 'You need to be logged in' });
 	}
 
 	my $id = lc(Data::UUID->new->create_str);
@@ -330,7 +373,7 @@ post '/utterance/upload' => sub {
 
 	$gearman->do_background('convert', $id);
 
-	return to_json({ 'utt' => $id, 'filename' => $filename });
+	return to_json({ 'id' => $id, 'filename' => $filename });
 };
 
 get '/admin' => sub {
@@ -358,7 +401,7 @@ any '/phones' => sub {
 sub serve_file {
 	my ($id, $filename) = @_;
 
-	my $file = database->quick_select('files', { 'id' => $id }, ['data', 'properties']);
+	my $file = database->quick_select('files', { 'id' => ($id || 0) }, ['data', 'properties']);
 
 	if (! $file) {
 		send_error('This file does not exist', 404);

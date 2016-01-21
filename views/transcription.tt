@@ -1,5 +1,8 @@
 <script src="[% request.uri_base %]/javascripts/wavesurfer.min.js"></script>
-<script src="[% request.uri_base %]/javascripts/wavesurfer.spectrogram.js"></script>
+<script src="[% request.uri_base %]/javascripts/wavesurfer.regions.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/wavesurfer.minimap.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/wavesurfer.timeline.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/tether.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/drop.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/can.min.js"></script>
 <script>
@@ -7,12 +10,10 @@ var editable = [% IF editable %]true[% ELSE %]false[% END %];
 </script>
 <script src="[% request.uri_base %]/javascripts/phones.js"></script>
 <script src="[% request.uri_base %]/javascripts/phones-modal.js"></script>
-<script src="[% request.uri_base %]/javascripts/main.js"></script>
+<script src="[% request.uri_base %]/javascripts/utterance.js"></script>
 
 
 [% USE date(format = '%Y.%m.%d %T', locale = 'en_US') %]
-<h2>Transcription</h2>
-<hr/>
 
 <div class="progress" id="transkribing-progress-bar" style="font-style: italic; text-align: center;">
 </div>
@@ -21,10 +22,15 @@ var editable = [% IF editable %]true[% ELSE %]false[% END %];
 	<div class="progress progress-striped active" id="progress-bar">
 		<div class="progress-bar progress-bar-info"></div>
 	</div>
-	<!-- Here be the waveform -->
 </div>
 
-<!-- <div id="wave-spectrogram"><spectrogram/></div> -->
+<div id="wave-timeline"></div>
+
+<div id="waveform-segment" style="display: none;">
+	<div class="progress progress-striped active" id="progress-bar-segment">
+		<div class="progress-bar progress-bar-info"></div>
+	</div>
+</div>
 
 <div id="phones" style="overflow-x:hidden;overflow-y:auto;">
 <script type="text/mustache" id="phones-template">
@@ -102,7 +108,7 @@ var editable = [% IF editable %]true[% ELSE %]false[% END %];
     </div>
   </div>
 	[% END %]
-  <input id="utt" type="hidden" name="utt" value="[% transcription.id | html %]">
-  <input id="transkription" type="hidden" name="transkription" value="">
+  <input id="id" type="hidden" name="id" value="[% transcription.id | html %]">
+  <input id="transkriptions" type="hidden" name="transkriptions" value="">
 </form>
 

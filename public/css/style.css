@@ -134,3 +134,7 @@ span.candidate:hover, span.candidate.highlight {
 	color: #000000;
 }
 
+.wavesurfer-region {
+	border-right: medium dotted #2ECC40;
+}
+

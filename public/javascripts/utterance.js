@@ -1,72 +1,73 @@
 'use strict';
 
-// Create an instance
+var segment, pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, originalTargetHTML, originalTargetClass, selectionDirection, drops;
+
 var wavesurfer = Object.create(WaveSurfer);
+var wavesurferSegment = Object.create(WaveSurfer);
 
-function checkProgress() {
-	var xhr = new XMLHttpRequest();
-	xhr.overrideMimeType('application/json');
-	xhr.open('GET', '/transcriptions/' + utt.value + '?type=progress', true);
-	xhr.send();
+var transkriptions = new Array();
 
-	xhr.addEventListener('load', function (e) {
-		if (200 == xhr.status) {
-			var percent = JSON.parse(xhr.responseText)['percent'];
-			if (percent == 100) {
-				// Init & load audio file
+function loadUtterance() {
+	if (wavesurferSegment.backend) {
+		wavesurferSegment.destroy();
+	}
 
-			    var options = {
-			        container     : document.querySelector('#waveform'),
-			        waveColor     : 'violet',
-			        progressColor : 'purple',
-			        loaderColor   : 'purple',
-			        cursorColor   : '#b5b5b5',
-			        markerWidth   : 1,
-			        minPxPerSec   : 400,
-			        scrollParent  : true,
-					normalize     : true,
-			    };
+    var options = {
+        container     : document.querySelector('#waveform-segment'),
+        waveColor     : 'violet',
+        progressColor : 'purple',
+        loaderColor   : 'purple',
+        cursorColor   : '#b5b5b5',
+        markerWidth   : 1,
+        minPxPerSec   : 200,
+        scrollParent  : true,
+		normalize     : true,
+    };
 
-				document.querySelector('#transkribing-progress-bar').style.display = 'none';
-				options.container.style.display = 'block';
+    /* Progress bar */
+    var progressDiv = document.querySelector('#progress-bar-segment');
+    var progressBar = progressDiv.querySelector('.progress-bar');
+    wavesurferSegment.on('loading', function (percent, xhr) {
+        progressDiv.style.display = 'block';
+        progressBar.style.width = percent + '%';
+    });
+    wavesurferSegment.on('ready', function () {
+        progressDiv.style.display = 'none';
+		document.querySelector('#waveform-segment').style.display = 'block';
+		loadTranskription();
+    });
+    wavesurferSegment.on('destroy', function () {
+        progressDiv.style.display = 'none';
+    });
 
-			    /* Progress bar */
-			    var progressDiv = document.querySelector('#progress-bar');
-			    var progressBar = progressDiv.querySelector('.progress-bar');
-			    wavesurfer.on('loading', function (percent, xhr) {
-			        progressDiv.style.display = 'block';
-			        progressBar.style.width = percent + '%';
-			    });
-			    wavesurfer.on('ready', function () {
-			        progressDiv.style.display = 'none';
-			    });
-			    wavesurfer.on('destroy', function () {
-			        progressDiv.style.display = 'none';
-			    });
+	wavesurferSegment.on('error', function (err) { console.error(err); });
+	wavesurferSegment.on('audioprocess', updateProgress);
+	wavesurferSegment.on('seek', updateProgressSeek);
 
-			    // Init
-			    wavesurfer.init(options);
+    // Init
+    wavesurferSegment.init(options);
+	document.querySelector('wave').style['overflowX'] = 'hidden';
 
-				document.querySelector('wave').style['overflowX'] = 'hidden';
-
-			    // Load audio from URL
-				wavesurfer.load('/transcriptions/' + utt.value + '?type=audio');
-			}
-			else {
-				document.querySelector('#transkribing-progress-bar').innerText = 'Transcribing is about ' + percent + '% done...';
-				setTimeout(checkProgress, 3000);
-			}
-		}
-	});
+    // Load audio from URL
+	wavesurferSegment.load('/transcriptions/' + id.value + '?segment=' + segment + '&type=audio');
 }
 
-document.addEventListener('DOMContentLoaded', checkProgress);
 
-var drops = new Array();
+function updateProgress(e) {
+	var activeP = pIndex[Math.floor(e * 100)];
 
-var pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, transkriptionChanged, originalTargetHTML, originalTargetClass, selectionDirection;
+	if (activeP == undefined) {
+		activeP = dIndex[transkription.length - 1];
+	}
 
-function pActivate (pId) {
+	pActivate(activeP);
+}
+
+function updateProgressSeek(e) {
+	updateProgress(e * wavesurferSegment.getDuration());
+}
+
+function pActivate(pId) {
 	if (currentP != pId) {
 		if (currentP != undefined) {
 			pDeactivate(currentP);
@@ -83,7 +84,7 @@ function pActivate (pId) {
 	}
 }
 
-function pDeactivate (pId) {
+function pDeactivate(pId) {
 	drops[pId].target.parentNode.parentNode.classList.remove('highlight');
 
 	drops[pId].close();
@@ -122,22 +123,22 @@ function exitCandidates() {
 function createListeners () {
     var eventHandlers = {
         'play': function () {
-            wavesurfer.playPause();
+            wavesurferSegment.playPause();
         },
 
         'back': function (e) {
-			if (wavesurfer.backend.isPaused()) {
+			if (wavesurferSegment.backend.isPaused()) {
 				if (currentC == undefined || drops[currentP] == undefined) {
 					if (e.shiftKey) {
-						var selection = wavesurfer.getSelection();
+						var selection = wavesurferSegment.getSelection();
 
 						if (selection != undefined &&
-							wavesurfer.getCurrentTime() >= selection.startPosition &&
-							wavesurfer.getCurrentTime() <= selection.endPosition
+							wavesurferSegment.getCurrentTime() >= selection.startPosition &&
+							wavesurferSegment.getCurrentTime() <= selection.endPosition
 						) {
 							if (selectionDirection == 'right') {
 								if (pIndex[Math.floor(selection.startPosition * 100)] == pIndex[Math.floor(selection.endPosition * 100)]) {
-									wavesurfer.seekAndCenter(selection.startPercentage);
+									wavesurferSegment.seekAndCenter(selection.startPercentage);
 									selection = undefined;
 									selectionDirection = '';
 								}
@@ -147,7 +148,7 @@ function createListeners () {
 							}
 							else {
 								selection.startPercentage = (sIndex[pIndex[Math.floor(selection.startPosition * 100) + 1] - 1] || 0) / duration;
-								wavesurfer.seekAndCenter(selection.startPercentage + 1 / duration);
+								wavesurferSegment.seekAndCenter(selection.startPercentage + 1 / duration);
 							}
 						}
 						else {
@@ -155,20 +156,20 @@ function createListeners () {
 								startPercentage: (sIndex[diIndex[currentP] - 1] || 0) / duration,
 								endPercentage: (sIndex[diIndex[currentP]] - 1) / duration
 							};
-							wavesurfer.seekAndCenter(selection.startPercentage + 1 / duration);
+							wavesurferSegment.seekAndCenter(selection.startPercentage + 1 / duration);
 							selectionDirection = 'left';
 						}
 
 						if (selection) {
-							wavesurfer.updateSelection(selection);
+							wavesurferSegment.updateSelection(selection);
 						}
 						else {
-							wavesurfer.clearSelection();
+							wavesurferSegment.clearSelection();
 						}
 					}
 					else {
 						if (diIndex[currentP] != 0) {
-							wavesurfer.seekAndCenter( sIndex[diIndex[currentP] - 1] * 1.002 / duration );
+							wavesurferSegment.seekAndCenter( sIndex[diIndex[currentP] - 1] * 1.002 / duration );
 						}
 					}
 				}
@@ -184,31 +185,31 @@ function createListeners () {
 				}
 			}
 			else {
-				wavesurfer.pause();
+				wavesurferSegment.pause();
 			}
         },
 
 		'forth': function (e) {
 			if (currentC == undefined || drops[currentP] == undefined) {
 				if (e.shiftKey) {
-					var selection = wavesurfer.getSelection();
+					var selection = wavesurferSegment.getSelection();
 
 					if (selection != undefined &&
-						wavesurfer.getCurrentTime() >= selection.startPosition &&
-						wavesurfer.getCurrentTime() <= selection.endPosition
+						wavesurferSegment.getCurrentTime() >= selection.startPosition &&
+						wavesurferSegment.getCurrentTime() <= selection.endPosition
 					) {
 						if (selectionDirection == 'right') {
 							selection.endPercentage = ((sIndex[pIndex[Math.floor(selection.endPosition * 100) + 1] + 1] || duration) - 1) / duration;
 						}
 						else {
 							if (pIndex[Math.floor(selection.startPosition * 100)] == pIndex[Math.floor(selection.endPosition * 100)]) {
-								wavesurfer.seekAndCenter( (sIndex[pIndex[Math.floor(selection.endPosition * 100)] + 1] * 1.002 || duration) / duration );
+								wavesurferSegment.seekAndCenter( (sIndex[pIndex[Math.floor(selection.endPosition * 100)] + 1] * 1.002 || duration) / duration );
 								selection = undefined;
 								selectionDirection = '';
 							}
 							else {
 								selection.startPercentage = (sIndex[pIndex[Math.floor(selection.startPosition * 100) + 1] + 1] * 1.002 || duration) / duration;
-								wavesurfer.seekAndCenter(selection.startPercentage);
+								wavesurferSegment.seekAndCenter(selection.startPercentage);
 							}
 						}
 					}
@@ -221,15 +222,15 @@ function createListeners () {
 					}
 
 					if (selection) {
-						wavesurfer.updateSelection(selection);
+						wavesurferSegment.updateSelection(selection);
 					}
 					else {
-						wavesurfer.clearSelection();
+						wavesurferSegment.clearSelection();
 					}
 				}
 				else {
 					if (diIndex[currentP] != transkription.length - 1) {
-						wavesurfer.seekAndCenter( sIndex[diIndex[currentP] + 1] * 1.002 / duration );
+						wavesurferSegment.seekAndCenter( sIndex[diIndex[currentP] + 1] * 1.001 / duration );
 					}
 				}
 			}
@@ -250,19 +251,19 @@ function createListeners () {
         },
 
 		'home': function () {
-			wavesurfer.seekAndCenter(0);
+			wavesurferSegment.seekAndCenter(0);
 		},
 
 		'end': function () {
-			wavesurfer.seekAndCenter( sIndex[sIndex.length - 1] * 1.002 / duration );
+			wavesurferSegment.seekAndCenter( sIndex[sIndex.length - 1] * 1.002 / duration );
 		},
 
 		'pageup': function () {
-			wavesurfer.seekAndCenter( sIndex[ Math.min(diIndex[currentP] + 5, sIndex.length - 1) ] * 1.002 / duration );
+			wavesurferSegment.seekAndCenter( sIndex[ Math.min(diIndex[currentP] + 5, sIndex.length - 1) ] * 1.002 / duration );
 		},
 
 		'pagedown': function () {
-			wavesurfer.seekAndCenter( sIndex[ Math.max(diIndex[currentP] - 5, 0) ] * 1.002 / duration );
+			wavesurferSegment.seekAndCenter( sIndex[ Math.max(diIndex[currentP] - 5, 0) ] * 1.002 / duration );
 		},
 
         'down': function () {
@@ -304,7 +305,7 @@ function createListeners () {
 			var index2del = diIndex[currentP] - 1;
             if (drops[currentP] != undefined && index2del != -1) {
 				transkription.splice(index2del, 2, [transkription[index2del + 1][0], transkription[index2del][1] + transkription[index2del + 1][1]]);
-				wavesurfer.seekAndCenter( sIndex[index2del] * 1.002 / duration );
+				wavesurferSegment.seekAndCenter( sIndex[index2del] * 1.002 / duration );
 			}
         },
 
@@ -361,22 +362,6 @@ function createListeners () {
         }
     });
 }
-
-wavesurfer.on('error', function (err) {
-    console.error(err);
-});
-
-wavesurfer.on('progress', function (e) {
-	var activeP = pIndex[Math.floor(wavesurfer.getCurrentTime() * 100)];
-
-	if (activeP == undefined) {
-		activeP = dIndex[transkription.length - 1];
-	}
-
-	pActivate(activeP);
-});
-
-var transkription;
 
 function changeBest(id, newBest) {
 	drops[id].close();
@@ -459,101 +444,233 @@ can.view.tag('phone', function(el, tagData){
 	$(el).html(best);
 });
 
-
-wavesurfer.on('ready', function () {
-	duration = wavesurfer.getDuration() * 100;
+function loadTranskription() {
+	duration = wavesurferSegment.getDuration() * 100;
 	pIndex = new Array(Math.ceil(duration));
 	diIndex = new Array();
 	dIndex = new Array();
+	drops = new Array();
+	currentP = undefined;
+	document.querySelector('#phones').scrollLeft = 0;
 
 	// Init Spectrogram plugin
 	//var spectrogram = Object.create(WaveSurfer.Spectrogram);
 
-	//document.querySelector('#wave-spectrogram').removeChild(document.querySelector('#wave-spectrogram').childNodes[0]);
-
 	//spectrogram.init({
-	//	wavesurfer: wavesurfer,
+	//	wavesurferSegment: wavesurferSegment,
 	//	container: '#wave-spectrogram',
 	//	fftSamples: 512
 	//});
 
+	if (transkriptions[segment]) {
+		renderTranskription(transkriptions[segment]);
+	}
+	else {
+		var xhr = new XMLHttpRequest();
+		xhr.overrideMimeType('application/json');
+		xhr.open('GET', '/transcriptions/' + id.value + '?segment=' + segment + '&type=transkription', true);
+		xhr.send();
+
+		xhr.addEventListener('load', function (e) {
+			if (200 == xhr.status) {
+				renderTranskription(JSON.parse(xhr.responseText));
+			}
+			else {
+				wavesurferSegment.fireEvent('error', 'Server response: ' + xhr.statusText);
+			}
+		});
+	}
+}
+
+function renderTranskription(data) {
+	transkription = new can.List(data);
+
+	var phonemStart = 0;
+	sIndex = new Array(transkription.length);
+
+	for (var i = 0; i < transkription.length; i++) {
+		diIndex[i] = i;
+		dIndex[i] = i;
+		sIndex[i] = phonemStart;
+
+		for (var j = 0; j < transkription[i][1]; j++) {
+			pIndex[phonemStart + j] = i;
+		}
+
+		phonemStart += transkription[i][1];
+	}
+
+	transkription.bind('remove', function(ev, n, index) {
+		for (var i = 0; i < n.length; i++) {
+			dIndex.splice(index, 1);
+			sIndex.splice(index, 1);
+		}
+
+		diIndex = invertArray(dIndex);
+		transkriptions[segment] = transkription.attr();
+		wavesurfer.regions.list[segment].color = 'rgba(255, 94, 0, 0.4)';
+		wavesurfer.regions.list[segment].element.style.backgroundColor = 'rgba(255, 94, 0, 0.4)';
+	});
+
+	transkription.bind('add', function(ev, n, index) {
+		var phonemStart = index > 0 ? sIndex[index - 1] + transkription[index - 1][1] : 0;
+
+		for (var i = 0; i < n.length; i++) {
+			var newId = drops.length + i;
+			dIndex.splice(index + i, 0, newId);
+			sIndex.splice(index + i, 0, phonemStart);
+
+			for (var j = 0; j < n[i][1]; j++) {
+				pIndex[phonemStart + j] = newId;
+			}
+
+			phonemStart += n[i][1];
+		}
+
+		diIndex = invertArray(dIndex);
+		transkriptions[segment] = transkription.attr();
+		wavesurfer.regions.list[segment].color = 'rgba(255, 94, 0, 0.4)';
+		wavesurfer.regions.list[segment].element.style.backgroundColor = 'rgba(255, 94, 0, 0.4)';
+	});
+
+	var phonesView = can.view(
+				'phones-template',
+				{ transkription: transkription },
+				{ width:  function() { return wavesurferSegment.params.minPxPerSec / 100 * this[1] } }
+	);
+
+	$('#phones').html(phonesView);
+
+	document.querySelector('#waveform-segment').childNodes[3].addEventListener('scroll', function(e) {
+		document.querySelector('#phones').scrollLeft = document.querySelector('#waveform-segment').childNodes[3].scrollLeft;
+	})
+
+	wavesurferSegment.seekAndCenter(0);
+
+}
+
+function checkProgress() {
 	var xhr = new XMLHttpRequest();
 	xhr.overrideMimeType('application/json');
-	xhr.open('GET', '/transcriptions/' + utt.value + '?type=json', true);
+	xhr.open('GET', '/transcriptions/' + id.value + '?type=progress', true);
 	xhr.send();
 
 	xhr.addEventListener('load', function (e) {
 		if (200 == xhr.status) {
-			createListeners();
+			var percent = JSON.parse(xhr.responseText)['percent'];
+			if (percent == 100) {
 
-			transkription = new can.List(JSON.parse(xhr.responseText));
+				document.querySelector('#transkribing-progress-bar').style.display = 'none';
 
-			var phonemStart = 0;
-			sIndex = new Array(transkription.length);
+			    /* Progress bar */
+			    var progressDiv = document.querySelector('#progress-bar');
+			    var progressBar = progressDiv.querySelector('.progress-bar');
+			    wavesurfer.on('loading', function (percent, xhr) {
+			        progressDiv.style.display = 'block';
+			        progressBar.style.width = percent + '%';
+			    });
+			    wavesurfer.on('ready', function () {
+			        progressDiv.style.display = 'none';
+			    });
+			    wavesurfer.on('destroy', function () {
+			        progressDiv.style.display = 'none';
+			    });
 
-			for (var i = 0; i < transkription.length; i++) {
-				diIndex[i] = i;
-				dIndex[i] = i;
-				sIndex[i] = phonemStart;
+			    // Init
+			    var options = {
+			        container     : document.querySelector('#waveform'),
+			        waveColor     : 'violet',
+					progressColor : 'violet',
+			        cursorWidth   : 0,
+			        scrollParent  : false,
+					normalize     : true,
+					height        : 48,
+			    };
+				options.container.style.display = 'block';
 
-				for (var j = 0; j < transkription[i][1]; j++) {
-					pIndex[phonemStart + j] = i;
-				}
+			    wavesurfer.init(options);
 
-				phonemStart += transkription[i][1];
+				document.querySelector('wave').style['overflowX'] = 'hidden';
+
+				var wave2 = wavesurfer.container.lastChild;
+				var wave1 = wave2.previousSibling;
+				wave1.parentElement.replaceChild(wave1, wave2);
+				wave1.parentElement.insertBefore(wave2, wave1);
+
+			    // Load audio from URL
+				wavesurfer.load('/transcriptions/' + id.value + '?type=audio');
 			}
-
-			transkription.bind('remove', function(ev, n, index) {
-				for (var i = 0; i < n.length; i++) {
-					dIndex.splice(index, 1);
-					sIndex.splice(index, 1);
-				}
-
-				diIndex = invertArray(dIndex);
-				transkriptionChanged = true;
-			});
-
-			transkription.bind('add', function(ev, n, index) {
-				var phonemStart = index > 0 ? sIndex[index - 1] + transkription[index - 1][1] : 0;
-
-				for (var i = 0; i < n.length; i++) {
-					var newId = drops.length + i;
-					dIndex.splice(index + i, 0, newId);
-					sIndex.splice(index + i, 0, phonemStart);
-
-					for (var j = 0; j < n[i][1]; j++) {
-						pIndex[phonemStart + j] = newId;
-					}
-
-					phonemStart += n[i][1];
-				}
-
-				diIndex = invertArray(dIndex);
-				transkriptionChanged = true;
-			});
-
-			var phones = can.view(
-						'phones-template',
-						{ transkription: transkription },
-						{ width:  function() { return wavesurfer.params.minPxPerSec / 100 * this[1] } }
-			);
-
-			$('#phones').html(phones);
-
-			document.querySelector('#waveform').childNodes[5].addEventListener('scroll', function(e) {
-				document.querySelector('#phones').scrollLeft = document.querySelector('#waveform').childNodes[5].scrollLeft;
-			})
-
-			wavesurfer.seekAndCenter(0);
-
-			document.forms[0].onsubmit = function() { 
-													if (transkriptionChanged) {
-														document.forms[0].transkription.value = JSON.stringify(transkription.attr());
-													} 
-										};
-		}
-		else {
-			wavesurfer.fireEvent('error', 'Server response: ' + xhr.statusText);
+			else {
+				document.querySelector('#transkribing-progress-bar').innerText = 'Transcribing is about ' + percent + '% done...';
+				setTimeout(checkProgress, 3000);
+			}
 		}
 	});
+}
+
+createListeners();
+
+document.addEventListener('DOMContentLoaded', checkProgress);
+
+wavesurfer.on('region-mouseenter', highlightRegion);
+wavesurfer.on('region-mouseleave', dehighlightRegion);
+wavesurfer.on('region-click', selectRegion);
+
+wavesurfer.on('error', function (err) { console.error(err); });
+
+wavesurfer.on('ready', function () {
+	wavesurfer.util.ajax({
+		responseType: 'json',
+		url: '/transcriptions/' + id.value + '?type=segments'
+	}).on('success', createRegions);
+
+	var timeline = Object.create(WaveSurfer.Timeline);
+
+	timeline.init({
+			wavesurfer: wavesurfer,
+			container: "#wave-timeline"
+	});
+
+	document.forms[0].onsubmit = function() {
+									if (transkriptions.length > 0) {
+										document.forms[0].transkriptions.value = JSON.stringify(transkriptions);
+									}
+								};
 });
+
+function createRegions(segments) {
+	segments.forEach(function (s) {
+		wavesurfer.addRegion({
+								'start'	: s.start / 100.0,
+								'end'	: (s.start + s.duration) / 100.0,
+								'resize': false,
+								'drag'	: false,
+								'id'	: s.id,
+								'color'	: 'rgba(83, 83, 83, 0.1)'
+							});
+	});
+
+	selectRegion(wavesurfer.regions.list[segments[0].id]);
+}
+
+function highlightRegion(region, e) {
+	if (!segment || region.id != segment) {
+		region.element.style.backgroundColor = 'rgba(83, 83, 255, 0.1)';
+	}
+}
+
+function dehighlightRegion(region, e) {
+	if (!segment || region.id != segment) {
+		region.element.style.backgroundColor = region.color;
+	}
+}
+
+function selectRegion(region, e) {
+	if (segment) {
+		wavesurfer.regions.list[segment].element.style.backgroundColor = wavesurfer.regions.list[segment].color;
+	}
+	region.element.style.backgroundColor = 'rgba(100, 100, 255, 0.3)';
+	segment = region.id;
+	loadUtterance();
+}
+
