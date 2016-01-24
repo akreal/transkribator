@@ -1,11 +1,16 @@
 'use strict';
 
-var segment, pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, originalTargetHTML, originalTargetClass, selectionDirection, drops;
+var segment, segmentNumberById, segmentIdByNumber, pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, originalTargetHTML, originalTargetClass, selectionDirection;
 
 var wavesurfer = Object.create(WaveSurfer);
 var wavesurferSegment = Object.create(WaveSurfer);
 
 var transkriptions = new Array();
+
+var segmentNumberById = new Array();
+var segmentIdByNumber = new Array();
+
+var drops = new Array();
 
 function loadUtterance() {
 	if (wavesurferSegment.backend) {
@@ -259,11 +264,11 @@ function createListeners () {
 		},
 
 		'pageup': function () {
-			wavesurferSegment.seekAndCenter( sIndex[ Math.min(diIndex[currentP] + 5, sIndex.length - 1) ] * 1.002 / duration );
+			selectRegion(wavesurfer.regions.list[segmentIdByNumber[segmentNumberById[segment] + 1]]);
 		},
 
 		'pagedown': function () {
-			wavesurferSegment.seekAndCenter( sIndex[ Math.max(diIndex[currentP] - 5, 0) ] * 1.002 / duration );
+			selectRegion(wavesurfer.regions.list[segmentIdByNumber[segmentNumberById[segment] - 1]]);
 		},
 
         'down': function () {
@@ -449,9 +454,14 @@ function loadTranskription() {
 	pIndex = new Array(Math.ceil(duration));
 	diIndex = new Array();
 	dIndex = new Array();
-	drops = new Array();
 	currentP = undefined;
 	document.querySelector('#phones').scrollLeft = 0;
+
+	var drop;
+
+	while (drop = drops.shift()) {
+		drop.remove();
+	}
 
 	// Init Spectrogram plugin
 	//var spectrogram = Object.create(WaveSurfer.Spectrogram);
@@ -639,16 +649,18 @@ wavesurfer.on('ready', function () {
 });
 
 function createRegions(segments) {
-	segments.forEach(function (s) {
+	for (var i = 0; i < segments.length; i++) {
 		wavesurfer.addRegion({
-								'start'	: s.start / 100.0,
-								'end'	: (s.start + s.duration) / 100.0,
+								'start'	: segments[i].start / 100.0,
+								'end'	: (segments[i].start + segments[i].duration) / 100.0,
 								'resize': false,
 								'drag'	: false,
-								'id'	: s.id,
+								'id'	: segments[i].id,
 								'color'	: 'rgba(83, 83, 83, 0.1)'
 							});
-	});
+		segmentNumberById[segments[i].id] = i;
+		segmentIdByNumber[i] = segments[i].id;
+	}
 
 	selectRegion(wavesurfer.regions.list[segments[0].id]);
 }
@@ -666,11 +678,13 @@ function dehighlightRegion(region, e) {
 }
 
 function selectRegion(region, e) {
-	if (segment) {
-		wavesurfer.regions.list[segment].element.style.backgroundColor = wavesurfer.regions.list[segment].color;
+	if (region) {
+		if (segment) {
+			wavesurfer.regions.list[segment].element.style.backgroundColor = wavesurfer.regions.list[segment].color;
+		}
+		region.element.style.backgroundColor = 'rgba(100, 100, 255, 0.3)';
+		segment = region.id;
+		loadUtterance();
 	}
-	region.element.style.backgroundColor = 'rgba(100, 100, 255, 0.3)';
-	segment = region.id;
-	loadUtterance();
 }
 
