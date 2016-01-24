@@ -548,7 +548,12 @@ function renderTranskription(data) {
 	var phonesView = can.view(
 				'phones-template',
 				{ transkription: transkription },
-				{ width:  function() { return wavesurferSegment.params.minPxPerSec / 100 * this[1] } }
+				{ width:  function() {
+					return (
+							wavesurferSegment.drawer.wrapper.scrollWidth /
+							wavesurferSegment.getDuration()
+							) / 100 * this[1];
+				} }
 	);
 
 	$('#phones').html(phonesView);
