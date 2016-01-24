@@ -2,6 +2,8 @@
 
 var segment, segmentNumberById, segmentIdByNumber, pIndex, currentP, currentC, newCurrentC, sIndex, duration, transkription, dIndex, diIndex, originalTargetHTML, originalTargetClass, selectionDirection;
 
+var changedColor = 'rgba(113, 212, 242, 0.4)';
+
 var wavesurfer = Object.create(WaveSurfer);
 var wavesurferSegment = Object.create(WaveSurfer);
 
@@ -518,8 +520,8 @@ function renderTranskription(data) {
 
 		diIndex = invertArray(dIndex);
 		transkriptions[segment] = transkription.attr();
-		wavesurfer.regions.list[segment].color = 'rgba(255, 94, 0, 0.4)';
-		wavesurfer.regions.list[segment].element.style.backgroundColor = 'rgba(255, 94, 0, 0.4)';
+		wavesurfer.regions.list[segment].element.style.backgroundColor =
+						wavesurfer.regions.list[segment].color = changedColor;
 	});
 
 	transkription.bind('add', function(ev, n, index) {
@@ -539,8 +541,8 @@ function renderTranskription(data) {
 
 		diIndex = invertArray(dIndex);
 		transkriptions[segment] = transkription.attr();
-		wavesurfer.regions.list[segment].color = 'rgba(255, 94, 0, 0.4)';
-		wavesurfer.regions.list[segment].element.style.backgroundColor = 'rgba(255, 94, 0, 0.4)';
+		wavesurfer.regions.list[segment].element.style.backgroundColor =
+						wavesurfer.regions.list[segment].color = changedColor;
 	});
 
 	var phonesView = can.view(
@@ -656,7 +658,7 @@ function createRegions(segments) {
 								'resize': false,
 								'drag'	: false,
 								'id'	: segments[i].id,
-								'color'	: 'rgba(83, 83, 83, 0.1)'
+								'color'	: 'rgba(40, 40, 40, 0.1)'
 							});
 		segmentNumberById[segments[i].id] = i;
 		segmentIdByNumber[i] = segments[i].id;
@@ -682,7 +684,12 @@ function selectRegion(region, e) {
 		if (segment) {
 			wavesurfer.regions.list[segment].element.style.backgroundColor = wavesurfer.regions.list[segment].color;
 		}
-		region.element.style.backgroundColor = 'rgba(100, 100, 255, 0.3)';
+		region.element.style.backgroundColor = 'rgba(110, 110, 255, 0.2)';
+
+		if (! transkriptions[region.id]) {
+			wavesurfer.regions.list[region.id].color = 'rgba(200, 200, 200, 0.1)';
+		}
+
 		segment = region.id;
 		loadUtterance();
 	}
