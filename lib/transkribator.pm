@@ -323,6 +323,9 @@ get '/transcriptions/:id' => sub {
 
 		return to_json({ 'percent' => $percent });
 	}
+	elsif ($type eq 'properties') {
+		return $transcription->{'properties'};
+	}
 
 	my $editable = session('username') && session('userid') eq $transcription->{'owner'};
 

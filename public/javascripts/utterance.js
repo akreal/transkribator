@@ -602,6 +602,7 @@ function checkProgress() {
 			        scrollParent  : false,
 					normalize     : true,
 					height        : 48,
+					backend       : 'Silent'
 			    };
 				options.container.style.display = 'block';
 
@@ -615,7 +616,8 @@ function checkProgress() {
 				wave1.parentElement.insertBefore(wave2, wave1);
 
 			    // Load audio from URL
-				wavesurfer.load('/transcriptions/' + id.value + '?type=audio');
+			    wavesurfer.backend.on('ready', function () { wavesurfer.drawBuffer(); wavesurfer.fireEvent('ready'); });
+				wavesurfer.backend.loadMeta('/transcriptions/' + id.value + '?type=properties');
 			}
 			else {
 				document.querySelector('#transkribing-progress-bar').innerText = 'Transcribing is about ' + percent + '% done...';
@@ -645,7 +647,7 @@ wavesurfer.on('ready', function () {
 
 	timeline.init({
 			wavesurfer: wavesurfer,
-			container: "#wave-timeline"
+			container: '#wave-timeline'
 	});
 
 	document.forms[0].onsubmit = function() {
