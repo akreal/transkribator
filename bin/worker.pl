@@ -174,11 +174,11 @@ sub segmentate {
 		"--fInputDesc=audio2sphinx,1:3:2:0:0:0,13,0:0:0 --fInputMask=$features --fltSegMinLenSpeech=150 --fltSegMinLenSil=25 " .
 		"--sFilterClusterName=jingle --fltSegPadding=25 --sFilterMask=$pmsseg --sInputMask=$flt1seg --sOutputMask=$flt2seg show");
 
-	# Split segments longer than 20s (useful for transcription)
+	# Split segments longer than 10s (useful for transcription)
 	my $splseg="$workdir/show.spl.seg";
 
 	cmd("$lium_cmd fr.lium.spkDiarization.tools.SSplitSeg " .
-		"--sFilterMask=$pmsseg --sFilterClusterName=iS,iT,j --sInputMask=$flt2seg  --sSegMaxLen=2000 --sSegMaxLenModel=2000 " .
+		"--sFilterMask=$pmsseg --sFilterClusterName=iS,iT,j --sInputMask=$flt2seg  --sSegMaxLen=1000 --sSegMaxLenModel=1000 " .
 		"--sOutputMask=$splseg --fInputMask=$features --fInputDesc=audio2sphinx,1:3:2:0:0:0,13,0:0:0 --tInputMask=$sgmm show");
 
 	# Set gender and bandwidth
