@@ -39,11 +39,6 @@ if ($ret != GEARMAN_SUCCESS) {
 	exit(1);
 }
 
-$ret = $worker->add_function('convert', 0, \&convert, {});
-if ($ret != GEARMAN_SUCCESS) {
-	error($worker->error());
-}
-
 $ret = $worker->add_function('transkript', 0, \&transkript, {});
 if ($ret != GEARMAN_SUCCESS) {
 	error($worker->error());
@@ -69,37 +64,6 @@ while (1) {
 	}
 }
 
-sub convert {
-	my $job = shift;
-
-	my $id = $job->workload();
-
-	my $meta = database->quick_select('recordings', { 'id' => $id }, ['datafile', 'filename']);
-
-	my $tmpdir = tempdir();
-
-	my $path = "$tmpdir/$meta->{'filename'}";
-	my $cpath = "$path.wav";
-
-	export($meta->{'datafile'}, $path);
-
-	cmd("sox \"$path\" -r16k \"$cpath\"");
-
-	database->quick_insert('files', {
-										'data'			=> database->pg_lo_import($cpath),
-										'properties'	=> '{"content_type":"audio/x-wav"}',
-									}
-	);
-
-	database->quick_update('recordings', { 'id' => $id },
-			{ 'cdatafile' => database->last_insert_id(undef, undef, 'files', undef) }
-	);
-
-	$client->do_background('segmentate', $id);
-
-	rmtree($tmpdir);
-}
-
 sub segmentate {
 	my $job = shift;
 
@@ -107,8 +71,17 @@ sub segmentate {
 
 	my $workdir = tempdir();
 
+	my $meta = database->quick_select('recordings', { 'id' => $id }, ['datafile', 'filename']);
+
+	my $path = "$workdir/$meta->{'filename'}";
+	export($meta->{'datafile'}, $path);
+
 	my $features = "$workdir/file.wav";
-	export(database->quick_lookup('recordings', { 'id' => $id }, 'cdatafile'), $features);
+	cmd("sox \"$path\" -r16k \"$features\"");
+
+	cmd("wav2json -p 2 -s 2000 \"$features\"");
+	database->do("UPDATE recordings SET properties = properties || '{\"wav2json\":" .
+		read_file("$features.json") . "}' WHERE id='$id'");
 
 	my $uem = "$workdir/show.uem.seg";
 	write_file($uem, 'file 1 0 1000000000 U U U 1');

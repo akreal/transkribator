@@ -374,7 +374,7 @@ post '/utterance/upload' => sub {
 											}
 	);
 
-	$gearman->do_background('convert', $id);
+	$gearman->do_background('segmentate', $id);
 
 	return to_json({ 'id' => $id, 'filename' => $filename });
 };
