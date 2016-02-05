@@ -11,6 +11,7 @@ use File::Slurp;
 use File::MMagic;
 use Gearman::XS qw(:constants);
 use Gearman::XS::Client;
+use List::MoreUtils qw(uniq);
 
 our $VERSION = '0.1';
 
@@ -310,15 +311,13 @@ get '/transcriptions/:id' => sub {
 		return serve_file($transcription->{'datafile'}, $transcription->{'filename'});
 	}
 	elsif ($type eq 'progress') {
-		return to_json({ 'percent' => 100 });
-		my $percent = 0;
+		my @segments = database->quick_select('utterancies', { 'recording' => $id }, { 'columns' => [ 'id' ] });
+		my $percent = scalar(@segments);
 
-		if ($transcription->{'cdatafile'}) {
-			$percent += 20;
-
-			if ( database->quick_lookup('transcriptions', { 'utterance' => $id }, 'created') ) {
-				$percent += 80;
-			}
+		if ($percent > 0) {
+			my @transcriptions = database->quick_select('transcriptions',
+				{ 'utterance' => [ map { $_->{'id'} } @segments ] }, { 'columns' => [ 'utterance' ] });
+			$percent = 100 * scalar(uniq(map { $_->{'utterance'} } @transcriptions)) / $percent;
 		}
 
 		return to_json({ 'percent' => $percent });
