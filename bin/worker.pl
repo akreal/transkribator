@@ -8,9 +8,9 @@ use Gearman::XS::Worker;
 use Gearman::XS::Client;
 
 use File::Slurp;
-use File::Temp 'tempdir';
-use File::Path 'rmtree';
-use Capture::Tiny 'capture';
+use File::Temp qw(tempdir);
+use File::Path qw(rmtree);
+use Capture::Tiny qw(capture);
 
 use Dancer2;
 use Dancer2::Plugin::Database;
