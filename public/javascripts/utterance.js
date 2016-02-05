@@ -620,7 +620,7 @@ function checkProgress() {
 				wavesurfer.backend.loadMeta('/transcriptions/' + id.value + '?type=properties');
 			}
 			else {
-				document.querySelector('#transkribing-progress-bar').innerText = 'Transcribing is about ' + percent + '% done...';
+				document.querySelector('#transkribing-progress-bar').innerText = 'Transcribing is about ' + Math.floor(percent) + '% done...';
 				setTimeout(checkProgress, 3000);
 			}
 		}
