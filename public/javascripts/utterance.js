@@ -26,7 +26,7 @@ function loadUtterance() {
         loaderColor   : 'purple',
         cursorColor   : '#b5b5b5',
         markerWidth   : 1,
-        minPxPerSec   : 200,
+        minPxPerSec   : 60,
         scrollParent  : true,
 		normalize     : true,
     };
@@ -61,7 +61,7 @@ function loadUtterance() {
 
 
 function updateProgress(e) {
-	var activeP = pIndex[Math.floor(e * 100)];
+	var activeP = pIndex[Math.floor(e * 30)];
 
 	if (activeP == undefined) {
 		activeP = dIndex[transkription.length - 1];
@@ -452,7 +452,7 @@ can.view.tag('phone', function(el, tagData){
 });
 
 function loadTranskription() {
-	duration = wavesurferSegment.getDuration() * 100;
+	duration = wavesurferSegment.getDuration() * 30;
 	pIndex = new Array(Math.ceil(duration));
 	diIndex = new Array();
 	dIndex = new Array();
@@ -551,7 +551,7 @@ function renderTranskription(data) {
 				{ width:  function() {
 					return (
 							wavesurferSegment.drawer.wrapper.scrollWidth /
-							wavesurferSegment.getDuration()
+							( wavesurferSegment.getDuration() * 0.3 )
 							) / 100 * this[1];
 				} }
 	);

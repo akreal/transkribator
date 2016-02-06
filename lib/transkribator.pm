@@ -258,7 +258,7 @@ get '/transcriptions/:id' => sub {
 	session();
 
 	my $id = param('id');
-	my $transcription = database->quick_select('recordings', { 'id' => $id }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile', 'cdatafile']);
+	my $transcription = database->quick_select('recordings', { 'id' => $id }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile']);
 
 	if (! $transcription) {
 		send_error('This transcription doesn\'t exist', 404);
@@ -271,15 +271,10 @@ get '/transcriptions/:id' => sub {
 	my $segment = param('segment');
 
 	if ($type eq 'audio') {
-		if ($segment) {
-			return serve_file(
-					database->quick_lookup('utterancies', {'id' => $segment, 'recording' => $id }, 'datafile'),
-					"${id}-${segment}.wav"
-			);
-		}
-		else {
-			return serve_file($transcription->{'cdatafile'}, "$id.wav");
-		}
+		return serve_file(
+				database->quick_lookup('utterancies', {'id' => $segment, 'recording' => $id }, 'hdatafile'),
+				"${id}-${segment}.m4a"
+		);
 	}
 	elsif ($type eq 'segments') {
 		my @segments = database->quick_select('utterancies', { 'recording' => $id }, {

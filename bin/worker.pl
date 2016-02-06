@@ -49,6 +49,11 @@ if ($ret != GEARMAN_SUCCESS) {
 	error($worker->error());
 }
 
+$ret = $worker->add_function('humanize', 0, \&humanize, {});
+if ($ret != GEARMAN_SUCCESS) {
+	error($worker->error());
+}
+
 my $client = Gearman::XS::Client->new();
 $ret = $client->add_server( @{$gearman}{'host', 'port'} );
 if ($ret != GEARMAN_SUCCESS) {
@@ -179,22 +184,30 @@ sub segmentate {
 
 		cmd("sox $features $filename trim $s $d");
 
+		my $flac = "$filename.flac";
+		cmd("flac --best $filename -o $flac");
+
 		database->quick_insert('files', {
-											'data'			=> database->pg_lo_import($filename),
-											'properties'	=> '{"content_type":"audio/x-wav"}',
+											'data'			=> database->pg_lo_import($flac),
+											'properties'	=> '{"content_type":"audio/x-flac"}',
 										}
 		);
+
+		my $dataid = database->last_insert_id(undef, undef, 'files', undef);
 
 		database->quick_insert('utterancies', {
 											'recording'	=> $id,
 											'start'		=> $start,
 											'duration'	=> $duration,
 											'speaker'	=> $speaker,
-											'datafile'	=> database->last_insert_id(undef, undef, 'files', undef)
+											'datafile'	=> $dataid,
 											}
 		);
 
-		$client->do_background('transkript', database->last_insert_id(undef, undef, 'utterancies', undef));
+		my $utterance = database->last_insert_id(undef, undef, 'utterancies', undef);
+
+		$client->do_background('transkript', $utterance);
+		$client->do_background('humanize', $utterance);
 	}
 
 	close SEGMENTS;
@@ -210,7 +223,7 @@ sub transkript {
 	my $tmpdir = tempdir();
 
 	my $file = "$tmpdir/file.wav";
-	export(database->quick_lookup('utterancies', { 'id' => $id }, 'datafile'), $file);
+	export_flac(database->quick_lookup('utterancies', { 'id' => $id }, 'datafile'), $file);
 
 	write_file("$tmpdir/wav.scp", "utt $file\n");
 	write_file("$tmpdir/utt2spk", "utt anonymous\n");
@@ -244,10 +257,49 @@ sub transkript {
 	rmtree($tmpdir);
 }
 
+sub humanize {
+	my $job = shift;
+
+	my $id = $job->workload();
+
+	my $tmpdir = tempdir();
+
+	my $file = "$tmpdir/file.wav";
+	export_flac(database->quick_lookup('utterancies', { 'id' => $id }, 'datafile'), $file);
+
+	my $slow = "${file}_slow.wav";
+	cmd("sox $file $slow tempo -s 0.3 30 15");
+
+	my $aac = "$slow.m4a";
+	cmd("ffmpeg -i $slow -strict experimental -c:a aac -b:a 64k $aac");
+
+	database->quick_insert('files', {
+										'data'			=> database->pg_lo_import($aac),
+										'properties'	=> '{"content_type":"audio/x-m4a"}',
+									}
+	);
+
+	database->quick_update('utterancies', { 'id' => $id },
+		{ 'hdatafile' => database->last_insert_id(undef, undef, 'files', undef) });
+
+	rmtree($tmpdir);
+}
+
 sub export {
 	my ($id, $path) = @_;
 	my $loid = database->quick_lookup('files', { 'id' => $id }, 'data');
 	database->pg_lo_export($loid, $path);
+}
+
+sub export_flac {
+	my ($id, $path) = @_;
+
+	my $flac = "$path.flac";
+	export($id, $flac);
+
+	cmd("flac -d $flac -o $path");
+
+	unlink($flac);
 }
 
 sub cmd {
@@ -255,4 +307,3 @@ sub cmd {
 	my ($stdout, $stderr, $exit) = capture { system('/bin/bash', '-c', $cmd) };
 	error("Non-zero status $exit for\n$cmd\n$stderr\n") if $exit != 0;
 }
-
