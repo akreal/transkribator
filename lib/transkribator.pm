@@ -312,7 +312,9 @@ get '/transcriptions/:id' => sub {
 		if ($percent > 0) {
 			my @transcriptions = database->quick_select('transcriptions',
 				{ 'utterance' => [ map { $_->{'id'} } @segments ] }, { 'columns' => [ 'utterance' ] });
-			$percent = 100 * scalar(uniq(map { $_->{'utterance'} } @transcriptions)) / $percent;
+			my $webified = database->quick_count('utterancies', { 'recording' => $id, 'hdatafile' => { 'is' => undef, 'not' => 1 } });
+
+			$percent = 50 * (scalar(uniq(map { $_->{'utterance'} } @transcriptions)) + $webified) / $percent;
 		}
 
 		return to_json({ 'percent' => $percent });
