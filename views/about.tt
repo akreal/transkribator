@@ -16,7 +16,7 @@ We make Transkribator in our spare time without any external support.
 This would not be possible without the number of amazing open source/free licensed data projects,
 among which are:
 <ul>
-<li><a href="http://kaldi.sourceforge.net/">Kaldi</a> &ndash; a toolkit for speech recognition</li>
+<li><a href="http://kaldi-asr.org/">Kaldi</a> &ndash; a toolkit for speech recognition</li>
 <li><a href="http://www.voxforge.org/">VoxForge</a> &ndash; GPL transcribed speech collection</li>
 <li><a href="https://github.com/westonruter/ipa-chart/">IPA chart</a> &ndash; International Phonetic Alphabet Unicode Chart and Character Picker</li>
 <li><a href="http://www.wavesurfer.fm/">wavesurfer.js</a> &ndash; Web Audio waveform visualizer</li>
