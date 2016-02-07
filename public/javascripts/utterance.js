@@ -7,6 +7,8 @@ var changedColor = 'rgba(113, 212, 242, 0.4)';
 var wavesurfer = Object.create(WaveSurfer);
 var wavesurferSegment = Object.create(WaveSurfer);
 
+var timeline = Object.create(WaveSurfer.Timeline);
+
 var transkriptions = new Array();
 
 var segmentNumberById = new Array();
@@ -643,8 +645,6 @@ wavesurfer.on('ready', function () {
 		url: '/transcriptions/' + id.value + '?type=segments'
 	}).on('success', createRegions);
 
-	var timeline = Object.create(WaveSurfer.Timeline);
-
 	timeline.init({
 			wavesurfer: wavesurfer,
 			container: '#wave-timeline'
@@ -658,6 +658,11 @@ wavesurfer.on('ready', function () {
 });
 
 function createRegions(segments) {
+	if (segments.length < 2) {
+		wavesurfer.container.style.display = 'none';
+		timeline.container.style.display = 'none';
+	}
+
 	for (var i = 0; i < segments.length; i++) {
 		wavesurfer.addRegion({
 								'start'	: segments[i].start / 100.0,
