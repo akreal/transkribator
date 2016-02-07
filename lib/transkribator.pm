@@ -323,15 +323,8 @@ get '/transcriptions/:id' => sub {
 
 	my $editable = session('username') && session('userid') eq $transcription->{'owner'};
 
-	if ($segment) {
-		return template
-			'utterance' => { 'title' => 'Utterance', 'recording' => $id, 'segment' => $segment, 'editable' => $editable },
-			{ layout => 'utterance' };
-	}
-	else {
-		return template
-			'transcription' => { 'title' => 'Transcription', 'transcription' => $transcription, 'editable' => $editable };
-	}
+	return template
+		'transcription' => { 'title' => 'Transcription', 'transcription' => $transcription, 'editable' => $editable };
 };
 
 post '/utterance/upload' => sub {
