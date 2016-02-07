@@ -603,7 +603,7 @@ function checkProgress() {
 			        cursorWidth   : 0,
 			        scrollParent  : false,
 					normalize     : true,
-					height        : 48,
+					height        : 32,
 					backend       : 'Silent'
 			    };
 				options.container.style.display = 'block';
