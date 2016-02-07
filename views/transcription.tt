@@ -19,13 +19,13 @@ var editable = [% IF editable %]true[% ELSE %]false[% END %];
 <div class="progress" id="transkribing-progress-bar" style="font-style: italic; text-align: center;">
 </div>
 
+<div id="wave-timeline"></div>
+
 <div id="waveform" style="display: none;">
 	<div class="progress progress-striped active" id="progress-bar">
 		<div class="progress-bar progress-bar-info"></div>
 	</div>
 </div>
-
-<div id="wave-timeline"></div>
 
 <div id="waveform-segment" style="display: none;">
 	<div class="progress progress-striped active" id="progress-bar-segment">
