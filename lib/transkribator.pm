@@ -316,6 +316,9 @@ get '/transcriptions/:id' => sub {
 
 			$percent = 50 * (scalar(uniq(map { $_->{'utterance'} } @transcriptions)) + $webified) / $percent;
 		}
+		else {
+			$percent = 1;
+		}
 
 		return to_json({ 'percent' => $percent });
 	}
