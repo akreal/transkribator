@@ -2,12 +2,16 @@
 -- PostgreSQL database dump
 --
 
+-- Dumped from database version 9.5.0
+-- Dumped by pg_dump version 9.5.0
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
+SET row_security = off;
 
 --
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
@@ -44,13 +48,13 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: files; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: files; Type: TABLE; Schema: public; Owner: transkribator
 --
 
 CREATE TABLE files (
     id integer NOT NULL,
     created timestamp without time zone DEFAULT now() NOT NULL,
-    properties json DEFAULT '{}'::json NOT NULL,
+    properties jsonb DEFAULT '{}'::jsonb NOT NULL,
     data lo NOT NULL
 );
 
@@ -79,7 +83,7 @@ ALTER SEQUENCE files_id_seq OWNED BY files.id;
 
 
 --
--- Name: recordings; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: recordings; Type: TABLE; Schema: public; Owner: transkribator
 --
 
 CREATE TABLE recordings (
@@ -91,16 +95,15 @@ CREATE TABLE recordings (
     description text,
     created timestamp without time zone DEFAULT now() NOT NULL,
     updated timestamp without time zone DEFAULT now() NOT NULL,
-    properties json DEFAULT '{}'::json NOT NULL,
-    datafile integer,
-    cdatafile integer
+    properties jsonb DEFAULT '{}'::jsonb NOT NULL,
+    datafile integer
 );
 
 
 ALTER TABLE recordings OWNER TO transkribator;
 
 --
--- Name: transcriptions; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: transcriptions; Type: TABLE; Schema: public; Owner: transkribator
 --
 
 CREATE TABLE transcriptions (
@@ -114,7 +117,7 @@ CREATE TABLE transcriptions (
 ALTER TABLE transcriptions OWNER TO transkribator;
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: users; Type: TABLE; Schema: public; Owner: transkribator
 --
 
 CREATE TABLE users (
@@ -122,8 +125,8 @@ CREATE TABLE users (
     username text NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
-    properties json DEFAULT '{}'::json NOT NULL,
-    settings json DEFAULT '{}'::json NOT NULL
+    properties jsonb DEFAULT '{}'::jsonb NOT NULL,
+    settings jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 
@@ -151,7 +154,7 @@ ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 
 --
--- Name: utterancies; Type: TABLE; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: utterancies; Type: TABLE; Schema: public; Owner: transkribator
 --
 
 CREATE TABLE utterancies (
@@ -160,7 +163,8 @@ CREATE TABLE utterancies (
     start integer NOT NULL,
     duration smallint NOT NULL,
     speaker text NOT NULL,
-    datafile integer
+    datafile integer,
+    hdatafile integer
 );
 
 
@@ -209,7 +213,7 @@ ALTER TABLE ONLY utterancies ALTER COLUMN id SET DEFAULT nextval('utterancies_id
 
 
 --
--- Name: files_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: files_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator
 --
 
 ALTER TABLE ONLY files
@@ -217,7 +221,7 @@ ALTER TABLE ONLY files
 
 
 --
--- Name: recordings_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: recordings_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator
 --
 
 ALTER TABLE ONLY recordings
@@ -225,7 +229,7 @@ ALTER TABLE ONLY recordings
 
 
 --
--- Name: transcriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: transcriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator
 --
 
 ALTER TABLE ONLY transcriptions
@@ -233,7 +237,7 @@ ALTER TABLE ONLY transcriptions
 
 
 --
--- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator
 --
 
 ALTER TABLE ONLY users
@@ -241,7 +245,7 @@ ALTER TABLE ONLY users
 
 
 --
--- Name: utterancies_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: utterancies_pkey; Type: CONSTRAINT; Schema: public; Owner: transkribator
 --
 
 ALTER TABLE ONLY utterancies
@@ -249,56 +253,56 @@ ALTER TABLE ONLY utterancies
 
 
 --
--- Name: recordings_created_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: recordings_created_idx; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE INDEX recordings_created_idx ON recordings USING btree (created);
 
 
 --
--- Name: recordings_owner_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: recordings_owner_idx; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE INDEX recordings_owner_idx ON recordings USING btree (owner);
 
 
 --
--- Name: recordings_shared_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: recordings_shared_idx; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE INDEX recordings_shared_idx ON recordings USING btree (shared);
 
 
 --
--- Name: recordings_updated_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: recordings_updated_idx; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE INDEX recordings_updated_idx ON recordings USING btree (updated);
 
 
 --
--- Name: users_lower_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: users_lower_idx; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE UNIQUE INDEX users_lower_idx ON users USING btree (lower(email));
 
 
 --
--- Name: users_username_idx; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: users_username_idx; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE UNIQUE INDEX users_username_idx ON users USING btree (username);
 
 
 --
--- Name: utterancies_recording_ix; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: utterancies_recording_ix; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE INDEX utterancies_recording_ix ON utterancies USING btree (recording);
 
 
 --
--- Name: utterancies_start_ix; Type: INDEX; Schema: public; Owner: transkribator; Tablespace: 
+-- Name: utterancies_start_ix; Type: INDEX; Schema: public; Owner: transkribator
 --
 
 CREATE INDEX utterancies_start_ix ON utterancies USING btree (start);
