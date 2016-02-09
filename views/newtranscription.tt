@@ -37,10 +37,10 @@
   </div>
   <div class="form-group">
     <div class="col-sm-offset-2 col-sm-10">
-      <button type="submit" class="btn btn-default">Save</button>
+      <button id="save" type="submit" class="btn btn-default" disabled="true">Save</button>
     </div>
   </div>
-  <input id="utt" type="hidden" name="utt">
+  <input id="id" type="hidden" name="id">
 </form>
 
 <script>
@@ -60,7 +60,8 @@ $(function () {
             $('#progress .progress-bar').css('width', '0%');
 			$('#fileupload-success-message')[0].innerHTML = data.result.filename + ' is uploaded';
 			$('#fileupload-success-message').css('display', 'block');
-			$('#utt')[0].value = data.result.utt;
+			$('#id')[0].value = data.result.id;
+			$('#save')[0].disabled = false;
         },
         progressall: function (e, data) {
             var progress = parseInt(data.loaded / data.total * 100, 10);
