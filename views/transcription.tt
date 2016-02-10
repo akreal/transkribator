@@ -19,9 +19,9 @@ var editable = [% IF editable %]true[% ELSE %]false[% END %];
 <div class="progress" id="transkribing-progress-bar" style="font-style: italic; text-align: center;">
 </div>
 
-<div id="wave-timeline"></div>
+<div id="wave-timeline" style="visibility: hidden;"></div>
 
-<div id="waveform" style="display: none;">
+<div id="waveform" style="display: none; visibility: hidden;">
 	<div class="progress progress-striped active" id="progress-bar">
 		<div class="progress-bar progress-bar-info"></div>
 	</div>

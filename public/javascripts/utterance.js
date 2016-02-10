@@ -44,7 +44,12 @@ function loadUtterance() {
         progressDiv.style.display = 'none';
 		document.querySelector('#waveform-segment').style.display = 'block';
 		loadTranskription();
-    });
+
+		if (segmentIdByNumber.length > 1) {
+			wavesurfer.container.style.visibility = '';
+			timeline.container.style.visibility = '';
+		}
+	});
     wavesurferSegment.on('destroy', function () {
         progressDiv.style.display = 'none';
     });
@@ -580,6 +585,8 @@ function checkProgress() {
 			if (percent == 100) {
 
 				document.querySelector('#transkribing-progress-bar').style.display = 'none';
+				document.querySelector('#waveform').style.display = 'block';
+				document.querySelector('#waveform-segment').style.display = 'block';
 
 			    /* Progress bar */
 			    var progressDiv = document.querySelector('#progress-bar');
@@ -658,11 +665,6 @@ wavesurfer.on('ready', function () {
 });
 
 function createRegions(segments) {
-	if (segments.length < 2) {
-		wavesurfer.container.style.display = 'none';
-		timeline.container.style.display = 'none';
-	}
-
 	for (var i = 0; i < segments.length; i++) {
 		wavesurfer.addRegion({
 								'start'	: segments[i].start / 100.0,
