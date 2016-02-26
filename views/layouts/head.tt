@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="[% request.uri_base %]/css/style.css" >
 <link rel="stylesheet" href="[% request.uri_base %]/css/jquery.fileupload.css">
 
-<script src="[% request.uri_base %]/javascripts/jquery-2.1.1.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/jquery.min.js"></script>
 <script src="[% request.uri_base %]/bootstrap/js/bootstrap.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/vendor/jquery.ui.widget.js"></script>
 <script src="[% request.uri_base %]/javascripts/jquery.iframe-transport.js"></script>
