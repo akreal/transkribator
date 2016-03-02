@@ -1,6 +1,7 @@
 <script src="[% request.uri_base %]/javascripts/wavesurfer.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/wavesurfer.regions.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/wavesurfer.timeline.min.js"></script>
+<script src="[% request.uri_base %]/javascripts/wavesurfer.spectrogram.min.js"></script>
 <script src="[% request.uri_base %]/javascripts/wavesurfer.customRecenter.js"></script>
 <script src="[% request.uri_base %]/javascripts/wavesurfer.silent.js"></script>
 <script src="[% request.uri_base %]/javascripts/tether.min.js"></script>
@@ -32,6 +33,8 @@ var editable = [% IF editable %]true[% ELSE %]false[% END %];
 		<div class="progress-bar progress-bar-info"></div>
 	</div>
 </div>
+
+<div id="wave-spectrogram" style="overflow-x:hidden;overflow-y:auto;"></div>
 
 <div id="phones" style="overflow-x:hidden;overflow-y:auto;">
 <script type="text/mustache" id="phones-template">

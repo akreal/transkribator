@@ -472,14 +472,14 @@ function loadTranskription() {
 		drop.remove();
 	}
 
-	// Init Spectrogram plugin
-	//var spectrogram = Object.create(WaveSurfer.Spectrogram);
+	var spectrogram = Object.create(WaveSurfer.Spectrogram);
 
-	//spectrogram.init({
-	//	wavesurferSegment: wavesurferSegment,
-	//	container: '#wave-spectrogram',
-	//	fftSamples: 512
-	//});
+	spectrogram.init({
+		wavesurfer: wavesurferSegment,
+		container: '#wave-spectrogram',
+		pixelRatio: 1,
+		windowFunc: 'bartlettHann'
+	});
 
 	if (transkriptions[segment]) {
 		renderTranskription(transkriptions[segment]);
