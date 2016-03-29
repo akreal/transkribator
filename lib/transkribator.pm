@@ -207,7 +207,7 @@ get '/transcriptions/list/:zone' => sub {
 
 	my @transcriptions = database->quick_select(
 							'recordings',
-							( $zone eq 'my' ? { 'owner' => session 'userid' } : { 'shared' => 'true' } ),
+							( { 'deleted' => 'f', $zone eq 'my' ? ('owner' => session 'userid') : ('shared' => 'true') } ),
 							{ columns => ['id', 'title', 'filename', 'description', 'updated'], order_by => { desc => 'updated' } }
 							);
 
@@ -231,34 +231,43 @@ post '/transcriptions/update' => sub {
 		return template 'needlogin' => { title => 'Transcription' };
 	}
 
-	my ($id, $title, $description, $transkriptions) = map { param($_) eq '' ? undef : param($_) } ('id', 'title', 'description', 'transkriptions');
+	my ($id, $title, $description, $transkriptions, $action) = map { param($_) eq '' ? undef : param($_) }
+		('id', 'title', 'description', 'transkriptions', 'action');
 	
-	my $owner = database->quick_lookup('recordings', { 'id' => $id }, 'owner');
+	my $owner = database->quick_lookup('recordings', { 'id' => $id, 'deleted' => 'f' }, 'owner');
 
 	if (session('userid') ne $owner) {
 		send_error('You are not allowed to edit this transcription', 403);
 	}
 
-	database->quick_update('recordings', { 'id' => $id }, { 'title' => $title, 'description' => $description, 'updated' => 'now()', shared => param('shared') || 'f' });
+	if ($action && $action eq 'delete') {
+		database->quick_update('recordings', { 'id' => $id, 'deleted' => 'f' },
+			{ 'updated' => 'now()', 'deleted' => 't' });
+		redirect '/';
+	}
+	else {
+		database->quick_update('recordings', { 'id' => $id, 'deleted' => 'f' },
+			{ 'title' => $title, 'description' => $description, 'updated' => 'now()', 'shared' => param('shared') || 'f' });
 
-	my $t = eval { from_json($transkriptions) };
-	if (ref $t eq 'ARRAY') {
-		foreach my $segment (0 .. $#$t) {
-			if (ref $t->[$segment] eq 'ARRAY') {
-				database->quick_insert('transcriptions',
-					{ 'utterance' => $segment, 'author' => $owner, 'transcription' => $t->[$segment] });
+		my $t = eval { from_json($transkriptions) };
+		if (ref $t eq 'ARRAY') {
+			foreach my $segment (0 .. $#$t) {
+				if (ref $t->[$segment] eq 'ARRAY') {
+					database->quick_insert('transcriptions',
+						{ 'utterance' => $segment, 'author' => $owner, 'transcription' => $t->[$segment] });
+				}
 			}
 		}
-	}
 	
-	redirect("/transcriptions/$id");
+		redirect("/transcriptions/$id");
+	}
 };
 
 get '/transcriptions/:id' => sub {
 	session();
 
 	my $id = param('id');
-	my $transcription = database->quick_select('recordings', { 'id' => $id }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile']);
+	my $transcription = database->quick_select('recordings', { 'id' => $id, 'deleted' => 'f' }, ['id', 'filename', 'title', 'description', 'shared', 'owner', 'created', 'updated', 'properties', 'datafile']);
 
 	if (! $transcription) {
 		send_error('This transcription doesn\'t exist', 404);

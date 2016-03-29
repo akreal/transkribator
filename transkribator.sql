@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 9.5.0
--- Dumped by pg_dump version 9.5.0
+-- Dumped from database version 9.5.1
+-- Dumped by pg_dump version 9.5.1
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -96,7 +96,8 @@ CREATE TABLE recordings (
     created timestamp without time zone DEFAULT now() NOT NULL,
     updated timestamp without time zone DEFAULT now() NOT NULL,
     properties jsonb DEFAULT '{}'::jsonb NOT NULL,
-    datafile integer
+    datafile integer,
+    deleted boolean DEFAULT false NOT NULL
 );
 
 
