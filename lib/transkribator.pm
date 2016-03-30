@@ -217,11 +217,7 @@ get '/transcriptions/list/:zone' => sub {
 get '/transcriptions/new' => sub {
 	my $username = session('username');
 
-	if (!$username) {
-		return template 'needlogin' => { title => 'New transcription' };
-	}
-
-	return template 'newtranscription' => { title => 'New transcription' };
+	return template 'newtranscription' => { 'title' => 'New transcription', 'username' => $username };
 };
 
 post '/transcriptions/update' => sub {
@@ -272,7 +268,8 @@ get '/transcriptions/:id' => sub {
 	if (! $transcription) {
 		send_error('This transcription doesn\'t exist', 404);
 	}
-	if ($transcription->{'shared'} != 1 && (! session('username') || session('userid') ne $transcription->{'owner'})) {
+	if ($transcription->{'shared'} != 1 && $transcription->{'owner'} != 0 &&
+		(! session('username') || session('userid') ne $transcription->{'owner'})) {
 		send_error('You are not allowed to view this transcription', 403);
 	}
 
@@ -342,15 +339,11 @@ get '/transcriptions/:id' => sub {
 };
 
 post '/utterance/upload' => sub {
-	my $username = session('username');
-
-	if (! $username) {
-		return to_json({ 'id' => undef, 'error' => 'You need to be logged in' });
-	}
+	session();
 
 	my $id = lc(Data::UUID->new->create_str);
 
-	my $owner = session('userid');
+	my $owner = session('userid') || 0;
 	my $upload = upload('file');
 	my $filename = $upload->filename;
 	my $tempname = $upload->tempname;

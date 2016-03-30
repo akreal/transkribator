@@ -17,6 +17,7 @@
 		<div class="alert alert-success" id="fileupload-success-message" style="display: none;">upload completed</div>
  </div>
   </div>
+  [% IF username %]
   <div class="form-group">
     <label for="title" class="col-sm-2 control-label">Title</label>
     <div class="col-sm-10">
@@ -41,6 +42,13 @@
     </div>
   </div>
   <input id="id" type="hidden" name="id">
+  [% ELSE %]
+	<div class="alert alert-warning">
+		You can submit your recording anonymously just to try out automatical phone tagging on it.<br/>
+		You will not be able to edit or delete it. The recording will be deleted automatically in 24 hours.<br/>
+		If this is not what you want, please <a href="/login"><b>log in</b></a> or <a href="/signup"><b>sign up</b></a>.
+	</div>
+  [% END %]
 </form>
 
 <script>
@@ -60,8 +68,12 @@ $(function () {
             $('#progress .progress-bar').css('width', '0%');
 			$('#fileupload-success-message')[0].innerHTML = data.result.filename + ' is uploaded';
 			$('#fileupload-success-message').css('display', 'block');
+  [% IF username %]
 			$('#id')[0].value = data.result.id;
 			$('#save')[0].disabled = false;
+  [% ELSE %]
+			document.location.replace('/transcriptions/' + data.result.id);
+  [% END %]
         },
         progressall: function (e, data) {
             var progress = parseInt(data.loaded / data.total * 100, 10);
