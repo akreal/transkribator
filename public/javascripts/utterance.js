@@ -16,6 +16,8 @@ var segmentIdByNumber = new Array();
 
 var drops = new Array();
 
+var counter = 0;
+
 function loadUtterance() {
 	if (wavesurferSegment.backend) {
 		wavesurferSegment.destroy();
@@ -629,8 +631,9 @@ function checkProgress() {
 				wavesurfer.backend.loadMeta('/transcriptions/' + id.value + '?type=properties');
 			}
 			else {
-				document.querySelector('#transkribing-progress-bar').innerText = 'Transcribing is about ' + Math.floor(percent) + '% done...';
-				setTimeout(checkProgress, 3000);
+				document.querySelector('#transkribing-progress-bar').innerText =
+					'Transcribing is about ' + Math.floor(percent) + '% done' + '.'.repeat(counter++ % 3 + 1);
+				setTimeout(checkProgress, 1000);
 			}
 		}
 	});

@@ -17,7 +17,7 @@ var editable = [% IF editable %]true[% ELSE %]false[% END %];
 
 [% USE date(format = '%Y.%m.%d %T', locale = 'en_US') %]
 
-<div class="progress" id="transkribing-progress-bar" style="font-style: italic; text-align: center;">
+<div class="progress" id="transkribing-progress-bar" style="font-style: italic;">
 </div>
 
 <div id="wave-timeline" style="visibility: hidden;"></div>
